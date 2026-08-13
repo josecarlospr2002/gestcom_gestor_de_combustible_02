@@ -1,5 +1,6 @@
 from django import forms
-from .models import CatalogoCliente
+from django.core.validators import MinValueValidator
+from .models import CatalogoCliente, Transporte
 
 
 class CatalogoClienteForm(forms.ModelForm):
@@ -58,3 +59,54 @@ class CatalogoClienteForm(forms.ModelForm):
                 self.add_error('no_contrato', 'El número de contrato es obligatorio para esta clasificación.')
 
         return cleaned_data
+
+
+class TransporteForm(forms.ModelForm):
+    class Meta:
+        model = Transporte
+        fields = ['tipo_vehiculo', 'chapa', 'ic']
+        widgets = {
+            'tipo_vehiculo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ingrese el tipo de vehículo'
+            }),
+            'chapa': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ingrese la chapa'
+            }),
+            'ic': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0.01'
+            }),
+        }
+        labels = {
+            'tipo_vehiculo': 'Tipo de Vehículo',
+            'chapa': 'Chapa',
+            'ic': 'I/C',
+        }
+
+    def clean_ic(self):
+        ic = self.cleaned_data.get('ic')
+        if ic is not None and ic <= 0:
+            raise forms.ValidationError('El I/C debe ser un número mayor que 0.')
+        return ic
+
+    def clean_chapa(self):
+        chapa = self.cleaned_data.get('chapa')
+        if chapa:
+            # Normalizar: quitar espacios extras
+            chapa_normalizado = ' '.join(chapa.strip().split())
+
+            # Verificar si ya existe un vehículo con esa chapa
+            existe = Transporte.objects.filter(chapa__iexact=chapa_normalizado)
+
+            # Si estamos editando, excluir el vehículo actual
+            if self.instance.pk:
+                existe = existe.exclude(pk=self.instance.pk)
+
+            if existe.exists():
+                raise forms.ValidationError('Este vehículo ya existe en el registro.')
+
+        return chapa

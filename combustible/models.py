@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator
 
 
 class CatalogoCliente(models.Model):
@@ -28,3 +29,22 @@ class CatalogoCliente(models.Model):
 
     def __str__(self):
         return f"{self.cliente} - {self.get_clasificacion_display()}"
+
+
+class Transporte(models.Model):
+    tipo_vehiculo = models.CharField(max_length=50, verbose_name='Tipo de Vehículo')
+    chapa = models.CharField(max_length=20, verbose_name='Chapa')
+    ic = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0.01)],
+        verbose_name='I/C'
+    )
+
+    class Meta:
+        verbose_name = 'Transporte'
+        verbose_name_plural = 'Transportes'
+        ordering = ['tipo_vehiculo']
+
+    def __str__(self):
+        return f"{self.tipo_vehiculo} - {self.chapa}"
