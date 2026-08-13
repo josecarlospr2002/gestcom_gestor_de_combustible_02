@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
+.input-group:focus-within {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    border-radius: 0.375rem;
+}
+.input-group .form-control:focus,
+.input-group .input-group-text:focus {
+    box-shadow: none;
+    border-color: #86b7fe;
+}
+.input-group .form-control {
+    border-left: none;
+    padding-left: 0.5rem;
+}
+.input-group .input-group-text {
+    padding-right: 0.5rem;
+    padding-left: 0.75rem;
+}
+.input-group:focus-within .form-control,
+.input-group:focus-within .input-group-text {
+    border-color: #86b7fe;
+}
+.card {
+    border-radius: 1.5rem !important;
+    overflow: hidden;
+}
+.card-header {
+    border-radius: 0 !important;
+}
+.card-body {
+    border-radius: 0 !important;
+}
+.alert-danger {
+    animation: fadeOut 5s forwards;
+}
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; display: none; }
+}
+.capslock-warning {
+    display: none;
+    text-align: center;
+    margin-top: 1rem;
+    color: #fff;
+    background: rgba(220, 53, 69, 0.9);
+    padding: 0.6rem 1.5rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    box-shadow: 0 0.3rem 0.8rem rgba(220, 53, 69, 0.3);
+    animation: pulse 1.5s infinite;
+}
+.capslock-warning i {
+    margin-right: 0.4rem;
+}
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+</style>
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-5">
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-header text-white text-center" style="background: linear-gradient(135deg, #0d6efd, #6f42c1);">
+                <h3 class="mb-0 py-3 fw-bold">Bienvenido a GestCom</h3>
+                <h5 class="text-white">Por favor, inicie sesión</h5>
+            </div>
+            <div class="card-body p-4" style="background-color: #e9f1f1;">
+
+                {% if form.errors %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Usuario o contraseña incorrectos. Intente nuevamente.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label fw-bold text-secondary">Usuario</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-primary">
+                                <i class="bi bi-person-fill"></i>
+                            </span>
+                            <input type="text" name="username" class="form-control" id="id_username" placeholder="Ingrese su usuario" required>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="id_password" class="form-label fw-bold text-secondary">Contraseña</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-primary">
+                                <i class="bi bi-lock-fill"></i>
+                            </span>
+                            <input type="password" name="password" class="form-control" id="id_password" placeholder="Ingrese su contraseña" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn w-100 text-white fw-bold py-2 rounded-3" style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
+                        <i class="bi bi-box-arrow-in-right"></i> Autenticarse
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Aviso CapsLock fuera del card -->
+        <div class="capslock-warning" id="capslockWarning">
+            <i class="bi bi-exclamation-triangle-fill"></i> Bloq Mayús está activado
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var usernameInput = document.getElementById('id_username');
+    var passwordInput = document.getElementById('id_password');
+    var capslockWarning = document.getElementById('capslockWarning');
+
+    function checkCapsLock(e) {
+        if (e.getModifierState && e.getModifierState('CapsLock')) {
+            capslockWarning.style.display = 'block';
+        } else {
+            capslockWarning.style.display = 'none';
+        }
+    }
+
+    usernameInput.addEventListener('keydown', checkCapsLock);
+    usernameInput.addEventListener('keyup', checkCapsLock);
+    usernameInput.addEventListener('click', checkCapsLock);
+
+    passwordInput.addEventListener('keydown', checkCapsLock);
+    passwordInput.addEventListener('keyup', checkCapsLock);
+    passwordInput.addEventListener('click', checkCapsLock);
+});
+</script>
+{% endblock %}

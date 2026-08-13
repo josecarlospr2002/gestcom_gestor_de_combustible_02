@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <style>
+        body {
+            background: linear-gradient(135deg, #bcc7ff, #ddbeff);
+        }
+
+        .card-dashboard {
+            border: none;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s;
+        }
+
+        .card-dashboard:hover {
+            transform: translateY(-3px);
+        }
+
+        .card-dashboard .card-header {
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 0.8rem 1rem;
+            border: none;
+        }
+
+        .card-dashboard .card-body {
+            padding: 1.5rem 1rem;
+        }
+
+        .card-dashboard .card-title {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .btn-acceso {
+            border-radius: 0.75rem;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+            font-size: 1rem;
+            transition: transform 0.2s;
+        }
+
+        .btn-acceso:hover {
+            transform: translateY(-2px);
+        }
+
+        .titulo-dashboard {
+            color: #333;
+            font-weight: 700;
+        }
+    </style>
+
+    <div class="text-center mb-4">
+        <h1 class="titulo-dashboard">
+            <i class="bi bi-speedometer2"></i> Panel de Control
+        </h1>
+        <p class="text-muted">Bienvenido al sistema de gestión</p>
+    </div>
+
+    <div class="row g-4 justify-content-center mb-4">
+        <div class="col-md-4">
+            <div class="card card-dashboard border-primary">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-fuel-pump"></i> Módulo 1
+                </div>
+                <div class="card-body text-center">
+                    <h3 class="card-title text-primary">0</h3>
+                    <p class="card-text text-muted mb-0">Registros</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-dashboard border-success">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-truck"></i> Módulo 2
+                </div>
+                <div class="card-body text-center">
+                    <h3 class="card-title text-success">0</h3>
+                    <p class="card-text text-muted mb-0">Registros</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-dashboard" style="border-color: #6f42c1 !important;">
+                <div class="card-header text-white" style="background-color: #7c5cbf !important;">
+                    <i class="bi bi-box-seam-fill"></i> Módulo 3
+                </div>
+                <div class="card-body text-center">
+                    <h3 class="card-title" style="color: #6f42c1 !important;">0</h3>
+                    <p class="card-text text-muted mb-0">Registros</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 justify-content-center">
+        {% if user.departamento == 'admin' or user.departamento == 'transporte' %}
+            <div class="col-md-6 col-lg-4">
+                <a href="#" class="btn btn-acceso text-white w-100"
+                   style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
+                    <i class="bi bi-truck"></i> Departamento de Transporte
+                </a>
+            </div>
+        {% endif %}
+
+        {% if user.departamento == 'admin' or user.departamento == 'petroleo' %}
+            <div class="col-md-6 col-lg-4">
+                <a href="#" class="btn btn-acceso text-white w-100"
+                   style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
+                    <i class="bi bi-droplet-fill"></i> Departamento de Petróleo
+                </a>
+            </div>
+        {% endif %}
+
+        {% if user.departamento == 'admin' or user.departamento == 'almacen' %}
+            <div class="col-md-6 col-lg-4">
+                <a href="#" class="btn btn-acceso text-white w-100"
+                   style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
+                    <i class="bi bi-box-seam-fill"></i> Almacén
+                </a>
+            </div>
+        {% endif %}
+
+        {% if user.departamento == 'admin' or user.departamento == 'director' %}
+            <div class="col-md-6 col-lg-4">
+                <a href="#" class="btn btn-acceso text-white w-100"
+                   style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
+                    <i class="bi bi-person-badge"></i> Director General
+                </a>
+            </div>
+        {% endif %}
+
+        {% if user.departamento == 'admin' or user.departamento == 'directivo' %}
+            <div class="col-md-6 col-lg-4">
+                <a href="#" class="btn btn-acceso text-white w-100"
+                   style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
+                    <i class="bi bi-person-check"></i> Directivo
+                </a>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
