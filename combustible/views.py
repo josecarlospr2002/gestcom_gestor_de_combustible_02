@@ -96,3 +96,13 @@ def eliminar_vehiculo(request, pk):
     vehiculo.delete()
     messages.success(request, 'Vehículo eliminado correctamente.')
     return redirect('lista_transporte')
+
+
+@login_required
+def ver_cliente(request, pk):
+    cliente = get_object_or_404(CatalogoCliente, pk=pk)
+    vehiculos = Transporte.objects.filter(cliente=cliente)
+    return render(request, 'combustible/ver_cliente.html', {
+        'cliente': cliente,
+        'vehiculos': vehiculos,
+    })

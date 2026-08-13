@@ -27,6 +27,9 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
 .table tbody tr:hover {
     background-color: #f0f0ff;
 }
+.fila-clicable {
+    cursor: pointer;
+}
 .titulo-tabla {
     color: black;
 }
@@ -64,7 +67,7 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
             </thead>
             <tbody>
                 {% for cliente in clientes %}
-                <tr>
+                <tr class="fila-clicable" onclick="window.location.href='{% url 'ver_cliente' cliente.id %}'">
                     <td>{{ cliente.cliente }}</td>
                     <td>{{ cliente.get_clasificacion_display }}</td>
                     <td>
@@ -76,7 +79,7 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                             <span class="text-muted">-</span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td onclick="event.stopPropagation();">
                         <a href="{% url 'editar_cliente' cliente.id %}" class="btn btn-primary btn-sm" title="Modificar">
                             <i class="bi bi-pencil"></i>
                         </a>
