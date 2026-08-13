@@ -96,47 +96,11 @@
     </div>
 
     <div class="row g-3 justify-content-center">
-        {% if user.departamento == 'admin' or user.departamento == 'transporte' %}
+        {% if user.departamento == 'admin' or user.departamento == 'transporte' or user.departamento == 'director' or user.departamento == 'directivo' %}
             <div class="col-md-6 col-lg-4">
-                <a href="#" class="btn btn-acceso text-white w-100"
+                <a href="{% url 'lista_clientes' %}" class="btn btn-acceso text-white w-100"
                    style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
-                    <i class="bi bi-truck"></i> Departamento de Transporte
-                </a>
-            </div>
-        {% endif %}
-
-        {% if user.departamento == 'admin' or user.departamento == 'petroleo' %}
-            <div class="col-md-6 col-lg-4">
-                <a href="#" class="btn btn-acceso text-white w-100"
-                   style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
-                    <i class="bi bi-droplet-fill"></i> Departamento de Petróleo
-                </a>
-            </div>
-        {% endif %}
-
-        {% if user.departamento == 'admin' or user.departamento == 'almacen' %}
-            <div class="col-md-6 col-lg-4">
-                <a href="#" class="btn btn-acceso text-white w-100"
-                   style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
-                    <i class="bi bi-box-seam-fill"></i> Almacén
-                </a>
-            </div>
-        {% endif %}
-
-        {% if user.departamento == 'admin' or user.departamento == 'director' %}
-            <div class="col-md-6 col-lg-4">
-                <a href="#" class="btn btn-acceso text-white w-100"
-                   style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
-                    <i class="bi bi-person-badge"></i> Director General
-                </a>
-            </div>
-        {% endif %}
-
-        {% if user.departamento == 'admin' or user.departamento == 'directivo' %}
-            <div class="col-md-6 col-lg-4">
-                <a href="#" class="btn btn-acceso text-white w-100"
-                   style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
-                    <i class="bi bi-person-check"></i> Directivo
+                    <i class="bi bi-people"></i> Catálogo de Cliente
                 </a>
             </div>
         {% endif %}
