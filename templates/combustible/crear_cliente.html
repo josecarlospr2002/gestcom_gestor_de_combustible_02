@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
+</style>
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-7">
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-header text-white text-center" style="background: linear-gradient(135deg, #0d6efd, #6f42c1);">
+                <h4 class="mb-0 py-2 fw-bold">
+                    <i class="bi bi-plus-circle"></i> Nuevo Cliente
+                </h4>
+            </div>
+            <div class="card-body p-4 bg-light">
+                <form method="post" id="form-cliente">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_cliente" class="form-label fw-bold text-secondary">{{ form.cliente.label }} *</label>
+                        {{ form.cliente }}
+                        {% if form.cliente.errors %}
+                            <div class="text-danger mt-1" id="error-cliente">
+                                {{ form.cliente.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_clasificacion" class="form-label fw-bold text-secondary">{{ form.clasificacion.label }} *</label>
+                        {{ form.clasificacion }}
+                    </div>
+                    <div class="mb-4" id="campo-no-contrato">
+                        <label for="id_no_contrato" class="form-label fw-bold text-secondary">{{ form.no_contrato.label }}</label>
+                        {{ form.no_contrato }}
+                        {% if form.no_contrato.errors %}
+                            <div class="text-danger mt-1">
+                                {{ form.no_contrato.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'lista_clientes' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </a>
+                        <button type="submit" class="btn btn-success fw-bold">
+                            <i class="bi bi-check-circle"></i> Guardar Cliente
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var clasificacionSelect = document.getElementById('id_clasificacion');
+    var campoNoContrato = document.getElementById('campo-no-contrato');
+    var noContratoInput = document.getElementById('id_no_contrato');
+    var clienteInput = document.getElementById('id_cliente');
+    var errorCliente = document.getElementById('error-cliente');
+
+    function actualizarCampoContrato() {
+        var clasificacion = clasificacionSelect.value;
+        if (clasificacion === 'consumo') {
+            campoNoContrato.style.display = 'none';
+            noContratoInput.value = '';
+            noContratoInput.required = false;
+        } else if (clasificacion === 'venta' || clasificacion === 'factura') {
+            campoNoContrato.style.display = 'block';
+            noContratoInput.required = true;
+        } else {
+            campoNoContrato.style.display = 'block';
+            noContratoInput.required = false;
+        }
+    }
+
+    // Ocultar error de cliente cuando se empieza a escribir
+    if (clienteInput && errorCliente) {
+        clienteInput.addEventListener('input', function() {
+            errorCliente.style.display = 'none';
+        });
+    }
+
+    clasificacionSelect.addEventListener('change', actualizarCampoContrato);
+    actualizarCampoContrato();
+});
+</script>
+{% endblock %}

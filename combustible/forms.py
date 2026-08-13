@@ -25,6 +25,24 @@ class CatalogoClienteForm(forms.ModelForm):
             'no_contrato': 'No. Contrato',
         }
 
+    def clean_cliente(self):
+        cliente = self.cleaned_data.get('cliente')
+        if cliente:
+            # Normalizar: quitar espacios extras y convertir a minúsculas para comparar
+            cliente_normalizado = ' '.join(cliente.strip().split()).lower()
+
+            # Verificar si ya existe un cliente con ese nombre
+            existe = CatalogoCliente.objects.filter(cliente__iexact=cliente_normalizado)
+
+            # Si estamos editando, excluir el cliente actual
+            if self.instance.pk:
+                existe = existe.exclude(pk=self.instance.pk)
+
+            if existe.exists():
+                raise forms.ValidationError('Este cliente ya existe en el catálogo.')
+
+        return cliente
+
     def clean(self):
         cleaned_data = super().clean()
         clasificacion = cleaned_data.get('clasificacion')
