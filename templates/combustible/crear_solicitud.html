@@ -1,0 +1,429 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <style>
+        body {
+            background: linear-gradient(135deg, #bcc7ff, #ddbeff);
+        }
+
+        .card-solicitud {
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        }
+
+        .tabla-solicitud {
+            background: white;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .tabla-solicitud thead th {
+            background: linear-gradient(135deg, #0d6efd, #6f42c1);
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 0.7rem;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .tabla-solicitud tbody td {
+            padding: 0.5rem;
+            vertical-align: middle;
+            border: none;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+
+        .tabla-solicitud tbody tr {
+            background-color: white;
+        }
+
+        .tabla-solicitud tbody tr:hover {
+            background-color: #f0f0ff;
+        }
+
+        .tabla-solicitud .form-control-sm {
+            font-size: 0.8rem;
+            padding: 0.3rem;
+        }
+
+        .btn-quitar {
+            background: none;
+            border: none;
+            color: #dc3545;
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .btn-quitar:hover {
+            color: #a71d2a;
+        }
+
+        .totales {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .totales .total-item {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        /* Checkbox más grande y clicable en toda la celda */
+        .checkbox-anexo {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            pointer-events: none;
+        }
+
+        .td-anexo {
+            cursor: pointer;
+        }
+
+        .td-anexo:hover {
+            background-color: #e8f0fe;
+        }
+    </style>
+
+    <div class="row justify-content-center mt-3">
+        <div class="col-md-12">
+            <div class="card-solicitud">
+                <div class="card-header text-white text-center"
+                     style="background: linear-gradient(135deg, #0d6efd, #6f42c1);">
+                    <h4 class="mb-0 py-2 fw-bold">
+                        <i class="bi bi-file-earmark-plus"></i> Nueva Solicitud
+                    </h4>
+                </div>
+                <div class="card-body p-4 bg-light">
+                    <form method="post" id="form-solicitud">
+                        {% csrf_token %}
+                        <input type="hidden" name="cliente_ids" id="cliente_ids" value="">
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="form-label fw-bold text-secondary mb-0 text-nowrap">Fecha y Hora
+                                        *</label>
+                                    <input type="datetime-local" name="fecha_hora" id="fecha_hora" class="form-control"
+                                           value="{{ fecha_hora_temp|default:'' }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tabla-solicitud">
+                            <table class="table table-hover mb-0" id="tabla-solicitud">
+                                <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Clasificación</th>
+                                    <th>Anexo 2</th>
+                                    <th>Cant. a Abastecer</th>
+                                    <th></th>
+                                </tr>
+                                </thead>
+                                <tbody id="tbody-solicitud">
+                                <!-- Las filas se agregan dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <button type="button" class="btn text-white fw-bold"
+                                    style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;"
+                                    onclick="agregarFila()">
+                                <i class="bi bi-plus-circle"></i> Agregar Fila
+                            </button>
+
+                            <div id="mensaje-sin-clientes" class="alert alert-warning mt-2"
+                                 style="display: none; max-width: 400px; margin-left: auto; margin-right: auto;">
+                                <i class="bi bi-exclamation-triangle-fill"></i> No hay más clientes disponibles.
+                            </div>
+                        </div>
+
+                        <div class="totales">
+                            <div class="row text-center">
+                                <div class="col-md-4">
+                                    <span class="total-item text-primary">Total de Consumo: </span>
+                                    <strong id="total-consumo">0.00</strong>
+                                </div>
+                                <div class="col-md-4">
+                                    <span class="total-item text-success">Total de Venta: </span>
+                                    <strong id="total-venta">0.00</strong>
+                                </div>
+                                <div class="col-md-4">
+                                    <span class="total-item" style="color: #6f42c1;">Total General: </span>
+                                    <strong id="total-general">0.00</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'lista_solicitudes' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Volver
+                            </a>
+                            <button type="submit" class="btn btn-success fw-bold">
+                                <i class="bi bi-save"></i> Guardar Solicitud
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="pb-4"></div>
+
+    <script>
+        var clientesDisponibles = [
+            {% for cliente in clientes %}
+                {
+                    id: {{ cliente.id }},
+                    nombre: "{{ cliente.cliente|escapejs }}",
+                    clasificacion: "{{ cliente.clasificacion }}"
+                },
+            {% endfor %}
+        ];
+
+        var filasAgregadas = 0;
+
+        function obtenerClientesDisponibles() {
+            var seleccionados = [];
+            var filas = document.querySelectorAll('#tbody-solicitud tr');
+            filas.forEach(function (fila) {
+                var select = fila.querySelector('.select-cliente');
+                if (select && select.value) {
+                    seleccionados.push(select.value);
+                }
+            });
+
+            return clientesDisponibles.filter(function (cliente) {
+                return !seleccionados.includes(String(cliente.id));
+            });
+        }
+
+        function agregarFila() {
+            var tbody = document.getElementById('tbody-solicitud');
+            var disponibles = obtenerClientesDisponibles();
+
+            if (disponibles.length === 0) {
+                var mensajeDiv = document.getElementById('mensaje-sin-clientes');
+                mensajeDiv.style.display = 'block';
+                setTimeout(function () {
+                    mensajeDiv.style.display = 'none';
+                }, 3000);
+                return;
+            }
+
+            var fila = document.createElement('tr');
+            fila.id = 'fila-' + filasAgregadas;
+
+            var selectHTML = '<select name="cliente_id" class="form-control form-control-sm select-cliente" onchange="actualizarFila(this)">';
+            selectHTML += '<option value="">Seleccione...</option>';
+            disponibles.forEach(function (cliente) {
+                selectHTML += '<option value="' + cliente.id + '">' + cliente.nombre + '</option>';
+            });
+            selectHTML += '</select>';
+
+            var checkHTML = '<input type="checkbox" name="anexo_2" value="" class="form-check-input checkbox-anexo" disabled onclick="event.stopPropagation();">';
+            var cantHTML = '<input type="number" name="cant_abastecer" class="form-control form-control-sm cant-abastecer" placeholder="0.00" step="0.01" min="0.01" oninput="calcularTotales()" required>';
+
+            var quitarHTML = '<button type="button" class="btn-quitar" onclick="quitarFila(this)" title="Quitar fila"><i class="bi bi-trash"></i></button>';
+
+            fila.innerHTML = '<td>' + selectHTML + '</td>' +
+                '<td class="td-clasificacion"></td>' +
+                '<td class="td-anexo" onclick="toggleCheckbox(this)" style="cursor: pointer;">' + checkHTML + '</td>' + '<td>' + cantHTML + '</td>' +
+                '<td>' + quitarHTML + '</td>';
+
+            tbody.appendChild(fila);
+            filasAgregadas++;
+        }
+
+        function toggleCheckbox(td) {
+            var checkbox = td.querySelector('.checkbox-anexo');
+            if (checkbox && !checkbox.disabled) {
+                checkbox.checked = !checkbox.checked;
+            }
+        }
+
+        function actualizarFila(select) {
+            var fila = select.closest('tr');
+            var clienteId = select.value;
+            var tdClasificacion = fila.querySelector('.td-clasificacion');
+            var checkboxAnexo = fila.querySelector('.checkbox-anexo');
+
+            if (clienteId) {
+                var cliente = clientesDisponibles.find(function (c) {
+                    return c.id == clienteId;
+                });
+
+                if (cliente) {
+                    var clasificacionTexto = '';
+                    if (cliente.clasificacion === 'consumo') clasificacionTexto = 'Consumo';
+                    else if (cliente.clasificacion === 'venta') clasificacionTexto = 'Venta';
+                    else if (cliente.clasificacion === 'factura') clasificacionTexto = 'En Factura de Servicio';
+                    tdClasificacion.textContent = clasificacionTexto;
+
+                    if (cliente.clasificacion === 'consumo' || cliente.clasificacion === 'factura') {
+                        checkboxAnexo.checked = true;
+                        checkboxAnexo.disabled = true;
+                        checkboxAnexo.value = clienteId;
+                    } else {
+                        checkboxAnexo.checked = false;
+                        checkboxAnexo.disabled = false;
+                        checkboxAnexo.value = clienteId;
+                    }
+                }
+            }
+
+            actualizarSelects();
+            calcularTotales();
+        }
+
+        function actualizarSelects() {
+            var filas = document.querySelectorAll('#tbody-solicitud tr');
+            var seleccionados = [];
+
+            filas.forEach(function (fila) {
+                var select = fila.querySelector('.select-cliente');
+                if (select && select.value) {
+                    seleccionados.push(select.value);
+                }
+            });
+
+            filas.forEach(function (fila) {
+                var select = fila.querySelector('.select-cliente');
+                if (select) {
+                    var valorActual = select.value;
+                    var disponibles = clientesDisponibles.filter(function (cliente) {
+                        return !seleccionados.includes(String(cliente.id)) || String(cliente.id) === valorActual;
+                    });
+
+                    var html = '<option value="">Seleccione...</option>';
+                    disponibles.forEach(function (cliente) {
+                        html += '<option value="' + cliente.id + '"' + (String(cliente.id) === valorActual ? ' selected' : '') + '>' + cliente.nombre + '</option>';
+                    });
+                    select.innerHTML = html;
+                }
+            });
+        }
+
+        function quitarFila(btn) {
+            var fila = btn.closest('tr');
+            fila.remove();
+            actualizarSelects();
+            calcularTotales();
+        }
+
+        function calcularTotales() {
+            var totalConsumo = 0;
+            var totalVenta = 0;
+            var filas = document.querySelectorAll('#tbody-solicitud tr');
+
+            filas.forEach(function (fila) {
+                var select = fila.querySelector('.select-cliente');
+                var cantidadInput = fila.querySelector('.cant-abastecer');
+                var cantidad = parseFloat(cantidadInput.value) || 0;
+
+                if (select.value) {
+                    var cliente = clientesDisponibles.find(function (c) {
+                        return c.id == select.value;
+                    });
+
+                    if (cliente) {
+                        if (cliente.clasificacion === 'venta') {
+                            totalVenta += cantidad;
+                        } else {
+                            totalConsumo += cantidad;
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('total-consumo').textContent = totalConsumo.toFixed(2);
+            document.getElementById('total-venta').textContent = totalVenta.toFixed(2);
+            document.getElementById('total-general').textContent = (totalConsumo + totalVenta).toFixed(2);
+        }
+
+        // Validar cantidad antes de enviar
+        document.getElementById('form-solicitud').addEventListener('submit', function (e) {
+            var filas = document.querySelectorAll('#tbody-solicitud tr');
+            var datosFilas = [];
+            var hayError = false;
+
+            filas.forEach(function (fila) {
+                var select = fila.querySelector('.select-cliente');
+                var checkbox = fila.querySelector('.checkbox-anexo');
+                var cantidad = fila.querySelector('.cant-abastecer');
+
+                if (select && select.value) {
+                    var cantidadValor = parseFloat(cantidad.value) || 0;
+                    if (cantidadValor <= 0) {
+                        hayError = true;
+                        cantidad.classList.add('is-invalid');
+                    } else {
+                        cantidad.classList.remove('is-invalid');
+                        datosFilas.push({
+                            cliente_id: select.value,
+                            anexo_2: checkbox ? checkbox.checked : false,
+                            cantidad: cantidad.value
+                        });
+                    }
+                }
+            });
+
+            if (hayError) {
+                e.preventDefault();
+                alert('Las cantidades deben ser mayores que 0.');
+                return;
+            }
+
+            localStorage.setItem('filas_solicitud', JSON.stringify(datosFilas));
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var fechaHora = document.getElementById('fecha_hora');
+            if (!fechaHora.value) {
+                var now = new Date();
+                var fecha = now.getFullYear() + '-' +
+                    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(now.getDate()).padStart(2, '0') + 'T' +
+                    String(now.getHours()).padStart(2, '0') + ':' +
+                    String(now.getMinutes()).padStart(2, '0');
+                fechaHora.value = fecha;
+            }
+
+            var filasGuardadas = localStorage.getItem('filas_solicitud');
+            if (filasGuardadas) {
+                var datos = JSON.parse(filasGuardadas);
+                datos.forEach(function (dato) {
+                    agregarFila();
+                    var filas = document.querySelectorAll('#tbody-solicitud tr');
+                    var ultimaFila = filas[filas.length - 1];
+                    var select = ultimaFila.querySelector('.select-cliente');
+                    var checkbox = ultimaFila.querySelector('.checkbox-anexo');
+                    var cantidad = ultimaFila.querySelector('.cant-abastecer');
+
+                    if (select && dato.cliente_id) {
+                        select.value = dato.cliente_id;
+                        actualizarFila(select);
+                    }
+                    if (checkbox && dato.anexo_2) {
+                        checkbox.checked = true;
+                    }
+                    if (cantidad && dato.cantidad) {
+                        cantidad.value = dato.cantidad;
+                    }
+                });
+                calcularTotales();
+                localStorage.removeItem('filas_solicitud');
+            } else {
+                agregarFila();
+            }
+        });
+    </script>
+{% endblock %}

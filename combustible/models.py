@@ -56,7 +56,7 @@ class Transporte(models.Model):
         return f"{self.cliente.cliente} - {self.tipo_vehiculo} - {self.chapa}"
 
 
-class Solicitud(models.Model):
+class ModeloSolicitud(models.Model):
     ESTADOS = [
         ('borrador', 'Borrador'),
         ('pendiente', 'Pendiente a Revisión'),
@@ -71,16 +71,16 @@ class Solicitud(models.Model):
     total_general = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Total General')
 
     class Meta:
-        verbose_name = 'Solicitud'
-        verbose_name_plural = 'Solicitudes'
+        verbose_name = 'Modelo de Solicitud'
+        verbose_name_plural = 'Modelos de Solicitudes'
         ordering = ['-fecha_hora']
 
     def __str__(self):
-        return f"Solicitud #{self.id} - {self.fecha_hora.strftime('%d/%m/%Y %H:%M')}"
+        return f"Modelo de Solicitud #{self.id} - {self.fecha_hora.strftime('%d/%m/%Y %H:%M')}"
 
 
 class DetalleSolicitud(models.Model):
-    solicitud = models.ForeignKey(Solicitud, on_delete=models.CASCADE, related_name='detalles')
+    solicitud = models.ForeignKey(ModeloSolicitud, on_delete=models.CASCADE, related_name='detalles')
     cliente = models.ForeignKey(CatalogoCliente, on_delete=models.CASCADE, verbose_name='Cliente')
     anexo_2 = models.BooleanField(default=False, verbose_name='Anexo 2')
     cant_abastecer = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Cant. a Abastecer')

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CatalogoCliente, Transporte, Solicitud, DetalleSolicitud
+from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud
 
 
 @admin.register(CatalogoCliente)
@@ -16,8 +16,8 @@ class TransporteAdmin(admin.ModelAdmin):
     search_fields = ('tipo_vehiculo', 'chapa', 'cliente__cliente')
 
 
-@admin.register(Solicitud)
-class SolicitudAdmin(admin.ModelAdmin):
+@admin.register(ModeloSolicitud)
+class ModeloSolicitudAdmin(admin.ModelAdmin):
     list_display = ('id', 'fecha_hora', 'estado', 'total_consumo', 'total_venta', 'total_general')
     list_filter = ('estado', 'fecha_hora')
 

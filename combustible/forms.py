@@ -1,6 +1,6 @@
 from django import forms
 from django.core.validators import MinValueValidator
-from .models import CatalogoCliente, Transporte, Solicitud
+from .models import CatalogoCliente, Transporte, ModeloSolicitud
 
 
 class CatalogoClienteForm(forms.ModelForm):
@@ -29,19 +29,12 @@ class CatalogoClienteForm(forms.ModelForm):
     def clean_cliente(self):
         cliente = self.cleaned_data.get('cliente')
         if cliente:
-            # Normalizar: quitar espacios extras y convertir a minúsculas para comparar
             cliente_normalizado = ' '.join(cliente.strip().split()).lower()
-
-            # Verificar si ya existe un cliente con ese nombre
             existe = CatalogoCliente.objects.filter(cliente__iexact=cliente_normalizado)
-
-            # Si estamos editando, excluir el cliente actual
             if self.instance.pk:
                 existe = existe.exclude(pk=self.instance.pk)
-
             if existe.exists():
                 raise forms.ValidationError('Este cliente ya existe en el catálogo.')
-
         return cliente
 
     def clean(self):
@@ -50,11 +43,9 @@ class CatalogoClienteForm(forms.ModelForm):
         no_contrato = cleaned_data.get('no_contrato')
 
         if clasificacion == 'consumo':
-            # Si es Consumo, no debe tener número de contrato
             if no_contrato:
                 self.add_error('no_contrato', 'Los clientes de Consumo no deben tener número de contrato.')
         else:
-            # Si es Venta o Factura, debe tener número de contrato
             if not no_contrato:
                 self.add_error('no_contrato', 'El número de contrato es obligatorio para esta clasificación.')
 
@@ -92,9 +83,9 @@ class TransporteForm(forms.ModelForm):
         }
 
 
-class SolicitudForm(forms.ModelForm):
+class ModeloSolicitudForm(forms.ModelForm):
     class Meta:
-        model = Solicitud
+        model = ModeloSolicitud
         fields = ['fecha_hora']
         widgets = {
             'fecha_hora': forms.DateTimeInput(attrs={

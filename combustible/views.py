@@ -1,7 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import CatalogoCliente, Transporte
+from decimal import Decimal, InvalidOperation
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud
 from .forms import CatalogoClienteForm, TransporteForm
 
 
@@ -108,14 +111,10 @@ def ver_cliente(request, pk):
     })
 
 
-from decimal import Decimal, InvalidOperation
-from django.utils import timezone
-from django.utils.dateparse import parse_datetime
-
-
+# Vistas para Modelo de Solicitud
 @login_required
 def lista_solicitudes(request):
-    solicitudes = Solicitud.objects.all()
+    solicitudes = ModeloSolicitud.objects.all()
     return render(request, 'combustible/lista_solicitudes.html', {'solicitudes': solicitudes})
 
 
@@ -205,7 +204,7 @@ def crear_solicitud(request):
         total_general = total_consumo + total_venta
 
         # Crear solicitud
-        solicitud = Solicitud.objects.create(
+        solicitud = ModeloSolicitud.objects.create(
             fecha_hora=fecha_hora,
             estado='borrador',
             total_consumo=total_consumo,
