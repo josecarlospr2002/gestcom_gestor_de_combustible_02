@@ -1,6 +1,6 @@
 from django import forms
 from django.core.validators import MinValueValidator
-from .models import CatalogoCliente, Transporte
+from .models import CatalogoCliente, Transporte, Solicitud
 
 
 class CatalogoClienteForm(forms.ModelForm):
@@ -90,3 +90,28 @@ class TransporteForm(forms.ModelForm):
             'chapa': 'Chapa',
             'ic': 'I/C',
         }
+
+
+class SolicitudForm(forms.ModelForm):
+    class Meta:
+        model = Solicitud
+        fields = ['fecha_hora']
+        widgets = {
+            'fecha_hora': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local',
+            }),
+        }
+        labels = {
+            'fecha_hora': 'Fecha y Hora',
+        }
+
+    def clean_fecha_hora(self):
+        fecha_hora = self.cleaned_data.get('fecha_hora')
+        if fecha_hora:
+            from django.utils import timezone
+            if timezone.is_naive(fecha_hora):
+                fecha_hora = timezone.make_aware(fecha_hora)
+            if fecha_hora > timezone.now():
+                raise forms.ValidationError('No se puede registrar una solicitud con fecha futura.')
+        return fecha_hora

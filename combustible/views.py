@@ -106,3 +106,129 @@ def ver_cliente(request, pk):
         'cliente': cliente,
         'vehiculos': vehiculos,
     })
+
+
+from decimal import Decimal, InvalidOperation
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+
+
+@login_required
+def lista_solicitudes(request):
+    solicitudes = Solicitud.objects.all()
+    return render(request, 'combustible/lista_solicitudes.html', {'solicitudes': solicitudes})
+
+
+@login_required
+def crear_solicitud(request):
+    clientes = CatalogoCliente.objects.all()
+
+    if request.method == 'POST':
+        fecha_hora = request.POST.get('fecha_hora', '')
+        cliente_ids = request.POST.getlist('cliente_id')
+        anexo_2_list = request.POST.getlist('anexo_2')
+        cantidades = request.POST.getlist('cant_abastecer')
+
+        # Validar fecha
+        if not fecha_hora:
+            messages.error(request, 'La fecha y hora son obligatorias.')
+            return render(request, 'combustible/crear_solicitud.html', {
+                'clientes': clientes,
+                'fecha_hora_temp': fecha_hora,
+            })
+
+        fecha_parseada = parse_datetime(fecha_hora)
+        if fecha_parseada:
+            if timezone.is_naive(fecha_parseada):
+                fecha_parseada = timezone.make_aware(fecha_parseada)
+            if fecha_parseada > timezone.now():
+                messages.error(request, 'No se puede registrar una solicitud con fecha futura.')
+                return render(request, 'combustible/crear_solicitud.html', {
+                    'clientes': clientes,
+                    'fecha_hora_temp': fecha_hora,
+                })
+
+        # Validar que haya al menos una fila
+        if not cliente_ids:
+            messages.error(request, 'Debe agregar al menos un cliente a la solicitud.')
+            return render(request, 'combustible/crear_solicitud.html', {
+                'clientes': clientes,
+                'fecha_hora_temp': fecha_hora,
+            })
+
+        # Validar que no haya clientes duplicados
+        if len(cliente_ids) != len(set(cliente_ids)):
+            messages.error(request, 'No se puede repetir un cliente en la solicitud.')
+            return render(request, 'combustible/crear_solicitud.html', {
+                'clientes': clientes,
+                'fecha_hora_temp': fecha_hora,
+            })
+
+        # Validar cantidades
+        total_consumo = Decimal('0')
+        total_venta = Decimal('0')
+
+        for i, cliente_id in enumerate(cliente_ids):
+            cliente = CatalogoCliente.objects.get(pk=cliente_id)
+            cant_str = cantidades[i]
+            anexo_2 = str(cliente_id) in anexo_2_list
+
+            try:
+                cantidad = Decimal(cant_str)
+                if cantidad <= 0:
+                    messages.error(request, f'La cantidad para {cliente.cliente} debe ser mayor que 0.')
+                    return render(request, 'combustible/crear_solicitud.html', {
+                        'clientes': clientes,
+                        'fecha_hora_temp': fecha_hora,
+                    })
+            except InvalidOperation:
+                messages.error(request, f'Cantidad inválida para {cliente.cliente}.')
+                return render(request, 'combustible/crear_solicitud.html', {
+                    'clientes': clientes,
+                    'fecha_hora_temp': fecha_hora,
+                })
+
+            # Validar Anexo 2 para clientes de Venta
+            if cliente.clasificacion == 'venta' and not anexo_2:
+                messages.error(request, f'El cliente {cliente.cliente} es de Venta y debe tener el Anexo 2 aprobado.')
+                return render(request, 'combustible/crear_solicitud.html', {
+                    'clientes': clientes,
+                    'fecha_hora_temp': fecha_hora,
+                })
+
+            # Sumar totales
+            if cliente.clasificacion == 'venta':
+                total_venta += cantidad
+            else:
+                total_consumo += cantidad
+
+        total_general = total_consumo + total_venta
+
+        # Crear solicitud
+        solicitud = Solicitud.objects.create(
+            fecha_hora=fecha_hora,
+            estado='borrador',
+            total_consumo=total_consumo,
+            total_venta=total_venta,
+            total_general=total_general
+        )
+
+        # Crear detalles
+        for i, cliente_id in enumerate(cliente_ids):
+            cliente = CatalogoCliente.objects.get(pk=cliente_id)
+            cant_str = cantidades[i]
+            anexo_2 = str(cliente_id) in anexo_2_list
+
+            DetalleSolicitud.objects.create(
+                solicitud=solicitud,
+                cliente=cliente,
+                anexo_2=anexo_2,
+                cant_abastecer=Decimal(cant_str)
+            )
+
+        messages.success(request, 'Solicitud creada correctamente.')
+        return redirect('lista_solicitudes')
+
+    return render(request, 'combustible/crear_solicitud.html', {
+        'clientes': clientes,
+    })
