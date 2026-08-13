@@ -64,8 +64,11 @@ class CatalogoClienteForm(forms.ModelForm):
 class TransporteForm(forms.ModelForm):
     class Meta:
         model = Transporte
-        fields = ['tipo_vehiculo', 'chapa', 'ic']
+        fields = ['cliente', 'tipo_vehiculo', 'chapa', 'ic']
         widgets = {
+            'cliente': forms.Select(attrs={
+                'class': 'form-control',
+            }),
             'tipo_vehiculo': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Ingrese el tipo de vehículo'
@@ -82,31 +85,8 @@ class TransporteForm(forms.ModelForm):
             }),
         }
         labels = {
+            'cliente': 'Cliente',
             'tipo_vehiculo': 'Tipo de Vehículo',
             'chapa': 'Chapa',
             'ic': 'I/C',
         }
-
-    def clean_ic(self):
-        ic = self.cleaned_data.get('ic')
-        if ic is not None and ic <= 0:
-            raise forms.ValidationError('El I/C debe ser un número mayor que 0.')
-        return ic
-
-    def clean_chapa(self):
-        chapa = self.cleaned_data.get('chapa')
-        if chapa:
-            # Normalizar: quitar espacios extras
-            chapa_normalizado = ' '.join(chapa.strip().split())
-
-            # Verificar si ya existe un vehículo con esa chapa
-            existe = Transporte.objects.filter(chapa__iexact=chapa_normalizado)
-
-            # Si estamos editando, excluir el vehículo actual
-            if self.instance.pk:
-                existe = existe.exclude(pk=self.instance.pk)
-
-            if existe.exists():
-                raise forms.ValidationError('Este vehículo ya existe en el registro.')
-
-        return chapa

@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
+</style>
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-7">
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-header text-white text-center" style="background: linear-gradient(135deg, #0d6efd, #6f42c1);">
+                <h4 class="mb-0 py-2 fw-bold">
+                    <i class="bi bi-pencil-square"></i> Modificar Vehículo
+                </h4>
+                <small class="text-white-50">Chapa: {{ vehiculo.chapa }}</small>
+            </div>
+            <div class="card-body p-4 bg-light">
+                <form method="post" id="form-vehiculo">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_cliente" class="form-label fw-bold text-secondary">{{ form.cliente.label }} *</label>
+                        {{ form.cliente }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_tipo_vehiculo" class="form-label fw-bold text-secondary">{{ form.tipo_vehiculo.label }} *</label>
+                        {{ form.tipo_vehiculo }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_chapa" class="form-label fw-bold text-secondary">{{ form.chapa.label }} *</label>
+                        {{ form.chapa }}
+                        {% if form.chapa.errors %}
+                            <div class="text-danger mt-1" id="error-chapa">
+                                {{ form.chapa.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-4">
+                        <label for="id_ic" class="form-label fw-bold text-secondary">{{ form.ic.label }} *</label>
+                        {{ form.ic }}
+                        {% if form.ic.errors %}
+                            <div class="text-danger mt-1">
+                                {{ form.ic.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'lista_transporte' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </a>
+                        <button type="submit" class="btn text-white fw-bold" style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
+                            <i class="bi bi-check-circle"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var chapaInput = document.getElementById('id_chapa');
+    var errorChapa = document.getElementById('error-chapa');
+
+    // Ocultar error de chapa cuando se empieza a escribir
+    if (chapaInput && errorChapa) {
+        chapaInput.addEventListener('input', function() {
+            errorChapa.style.display = 'none';
+        });
+    }
+});
+</script>
+{% endblock %}

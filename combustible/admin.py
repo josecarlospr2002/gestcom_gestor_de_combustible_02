@@ -11,5 +11,6 @@ class CatalogoClienteAdmin(admin.ModelAdmin):
 
 @admin.register(Transporte)
 class TransporteAdmin(admin.ModelAdmin):
-    list_display = ('tipo_vehiculo', 'chapa', 'ic')
-    search_fields = ('tipo_vehiculo', 'chapa')
+    list_display = ('cliente', 'tipo_vehiculo', 'chapa', 'ic')
+    list_filter = ('cliente',)
+    search_fields = ('tipo_vehiculo', 'chapa', 'cliente__cliente')

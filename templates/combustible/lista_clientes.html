@@ -70,6 +70,8 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                     <td>
                         {% if cliente.no_contrato %}
                             {{ cliente.no_contrato }}
+                        {% elif cliente.clasificacion == 'consumo' %}
+                            Pertenece a la Empresa
                         {% else %}
                             <span class="text-muted">-</span>
                         {% endif %}

@@ -53,7 +53,7 @@ def editar_cliente(request, pk):
 # Vistas para Transporte
 @login_required
 def lista_transporte(request):
-    transportes = Transporte.objects.all()
+    transportes = Transporte.objects.select_related('cliente').all()
     return render(request, 'combustible/lista_transporte.html', {'transportes': transportes})
 
 
@@ -88,3 +88,11 @@ def editar_vehiculo(request, pk):
         form = TransporteForm(instance=vehiculo)
 
     return render(request, 'combustible/editar_vehiculo.html', {'form': form, 'vehiculo': vehiculo})
+
+
+@login_required
+def eliminar_vehiculo(request, pk):
+    vehiculo = get_object_or_404(Transporte, pk=pk)
+    vehiculo.delete()
+    messages.success(request, 'Vehículo eliminado correctamente.')
+    return redirect('lista_transporte')
