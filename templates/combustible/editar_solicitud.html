@@ -1,0 +1,1030 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <style>
+        body {
+            background: linear-gradient(135deg, #bcc7ff, #ddbeff);
+        }
+
+        .card-solicitud {
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        }
+
+        .tabla-solicitud {
+            background: white;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .tabla-solicitud thead th {
+            background: linear-gradient(135deg, #0d6efd, #6f42c1);
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 0.7rem;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .tabla-solicitud tbody td {
+            padding: 0.5rem;
+            vertical-align: middle;
+            border: none;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+
+        .tabla-solicitud tbody tr {
+            background-color: white;
+        }
+
+        .tabla-solicitud tbody tr:hover {
+            background-color: #f0f0ff;
+        }
+
+        .tabla-solicitud .form-control-sm {
+            font-size: 0.8rem;
+            padding: 0.3rem;
+        }
+
+        .btn-quitar {
+            background: none;
+            border: none;
+            color: #dc3545;
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .btn-quitar:hover {
+            color: #a71d2a;
+        }
+
+        .totales {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .totales .total-item {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .checkbox-anexo {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            pointer-events: none;
+        }
+
+        .td-anexo {
+            cursor: pointer;
+        }
+
+        .td-anexo:hover {
+            background-color: #e8f0fe;
+        }
+
+        .td-cliente {
+            cursor: pointer;
+            color: #0d6efd;
+            text-decoration: underline;
+            font-weight: bold;
+        }
+
+        .td-cliente:hover {
+            background-color: #e8f0fe;
+        }
+
+        .modal-xl-custom {
+            max-width: 90%;
+        }
+
+        .mensaje-alerta {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            min-width: 300px;
+            text-align: center;
+        }
+
+        .mensaje-alerta .icono {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .mensaje-alerta .texto {
+            font-size: 1rem;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .mensaje-alerta .btn-aceptar {
+            background: linear-gradient(135deg, #0d6efd, #6f42c1);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-right: 0.5rem;
+        }
+
+        .mensaje-alerta .btn-cancelar {
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Cuadro de motivo de rechazo */
+        .motivo-rechazo {
+            background: #fff3f3;
+            border: 1px solid #dc3545;
+            border-left: 4px solid #dc3545;
+            border-radius: 0.5rem;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+            animation: fadeOutMotivo 10s forwards;
+            animation-delay: 8s;
+        }
+
+        @keyframes fadeOutMotivo {
+            0% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; display: none; }
+        }
+
+        .motivo-rechazo .titulo {
+            color: #dc3545;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+
+        .motivo-rechazo .texto {
+            color: #333;
+            margin-bottom: 0;
+        }
+    </style>
+
+    <div class="row justify-content-center mt-3">
+        <div class="col-md-12">
+            <div class="card-solicitud">
+                <div class="card-header text-white text-center"
+                     style="background: linear-gradient(135deg, #0d6efd, #6f42c1);">
+                    <h4 class="mb-0 py-2 fw-bold">
+                        <i class="bi bi-pencil-square"></i> Modificar Solicitud
+                    </h4>
+                </div>
+                <div class="card-body p-4 bg-light">
+                    <form method="post" id="form-solicitud">
+                        {% csrf_token %}
+                        <div id="campos-ocultos"></div>
+
+                        <!-- Motivo de rechazo si existe -->
+                        {% if solicitud.estado == 'rechazada' and solicitud.motivo_rechazo %}
+                        <div class="motivo-rechazo" id="motivo-rechazo">
+                            <div class="titulo">
+                                <i class="bi bi-exclamation-triangle-fill"></i> Motivo del rechazo:
+                            </div>
+                            <p class="texto">{{ solicitud.motivo_rechazo }}</p>
+                        </div>
+                        {% endif %}
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center gap-2">
+                                    <label class="form-label fw-bold text-secondary mb-0 text-nowrap">Fecha y Hora
+                                        *</label>
+                                    <input type="datetime-local" name="fecha_hora" id="fecha_hora" class="form-control"
+                                           value="{{ solicitud.fecha_hora|date:'Y-m-d\TH:i' }}" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tabla-solicitud">
+                            <table class="table table-hover mb-0" id="tabla-solicitud">
+                                <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Clasificación</th>
+                                    <th>Anexo 2</th>
+                                    <th>Cant. a Abastecer</th>
+                                    <th></th>
+                                </tr>
+                                </thead>
+                                <tbody id="tbody-solicitud">
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <button type="button" class="btn text-white fw-bold"
+                                    style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;"
+                                    onclick="agregarFila()">
+                                <i class="bi bi-plus-circle"></i> Agregar Fila
+                            </button>
+                            <div id="mensaje-sin-clientes" class="alert alert-warning mt-2"
+                                 style="display: none; max-width: 400px; margin-left: auto; margin-right: auto;">
+                                <i class="bi bi-exclamation-triangle-fill"></i> No hay más clientes disponibles.
+                            </div>
+                        </div>
+
+                        <div class="totales">
+                            <div class="row text-center">
+                                <div class="col-md-4">
+                                    <span class="total-item text-primary">Total de Consumo: </span>
+                                    <strong id="total-consumo">0.00</strong>
+                                </div>
+                                <div class="col-md-4">
+                                    <span class="total-item text-success">Total de Venta: </span>
+                                    <strong id="total-venta">0.00</strong>
+                                </div>
+                                <div class="col-md-4">
+                                    <span class="total-item" style="color: #6f42c1;">Total General: </span>
+                                    <strong id="total-general">0.00</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'lista_solicitudes' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Volver
+                            </a>
+                            <button type="button" class="btn text-white fw-bold"
+                                    style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;"
+                                    onclick="confirmarGuardar()">
+                                <i class="bi bi-save"></i> Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="pb-4"></div>
+
+    <!-- Mensaje de alerta personalizado -->
+    <div class="mensaje-alerta" id="mensaje-alerta">
+        <div class="icono" id="mensaje-icono">⚠️</div>
+        <div class="texto" id="mensaje-texto"></div>
+        <div>
+            <button type="button" class="btn-aceptar" id="mensaje-aceptar" onclick="cerrarMensaje()">Aceptar</button>
+            <button type="button" class="btn-cancelar" id="mensaje-cancelar" style="display: none;" onclick="cancelarConfirmacion()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Modal de Vehículos -->
+    <div class="modal fade" id="modalVehiculos" tabindex="-1">
+        <div class="modal-dialog modal-xl-custom modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, #0d6efd, #6f42c1);">
+                    <h5 class="modal-title">
+                        <i class="bi bi-truck"></i> Vehículos del Cliente
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <h5 style="color: #6f42c1;">
+                            <span id="modal-cliente-nombre" class="fw-bold"></span>
+                            <span class="text-muted"> - </span>
+                            <span id="modal-cliente-clasificacion" class="text-secondary"></span>
+                        </h5>
+                    </div>
+
+                    <div class="tabla-solicitud">
+                        <table class="table table-hover mb-0" id="tabla-vehiculos-modal">
+                            <thead>
+                            <tr>
+                                <th>Tipo de Vehículo</th>
+                                <th>Chapa</th>
+                                <th>Actividad</th>
+                                <th>Cant. a Abastecer</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody id="tbody-vehiculos-modal">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="text-center mt-3">
+                        <button type="button" class="btn text-white fw-bold"
+                                style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;"
+                                onclick="agregarFilaVehiculo()">
+                            <i class="bi bi-plus-circle"></i> Agregar Vehículo
+                        </button>
+                        <div id="mensaje-sin-vehiculos" class="alert alert-warning mt-2"
+                             style="display: none; max-width: 400px; margin-left: auto; margin-right: auto;">
+                            <i class="bi bi-exclamation-triangle-fill"></i> No hay más vehículos disponibles.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="guardarModalVehiculos()">
+                        <i class="bi bi-check-circle"></i> Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var clientesDisponibles = [
+            {% for cliente in clientes %}
+                {
+                    id: {{ cliente.id }},
+                    nombre: "{{ cliente.cliente|escapejs }}",
+                    clasificacion: "{{ cliente.clasificacion }}"
+                },
+            {% endfor %}
+        ];
+
+        var vehiculosPorCliente = {
+            {% for cliente in clientes %}
+                {{ cliente.id }}: [
+                    {% for transporte in cliente.transportes.all %}
+                        {
+                            id: {{ transporte.id }},
+                            tipo_vehiculo: "{{ transporte.tipo_vehiculo|escapejs }}",
+                            chapa: "{{ transporte.chapa|escapejs }}"
+                        },
+                    {% endfor %}
+                ],
+            {% endfor %}
+        };
+
+        // Datos precargados desde el backend
+        var detallesPrecargados = [
+            {% for detalle in detalles_precargados %}
+                {
+                    cliente_id: {{ detalle.cliente_id }},
+                    anexo_2: {{ detalle.anexo_2|yesno:"true,false" }},
+                    cantidad: "{{ detalle.cantidad }}",
+                    vehiculos: [
+                        {% for v in detalle.vehiculos %}
+                            {
+                                vehiculo_id: {{ v.vehiculo_id }},
+                                tipo_vehiculo: "{{ v.tipo_vehiculo|escapejs }}",
+                                chapa: "{{ v.chapa|escapejs }}",
+                                actividad: "{{ v.actividad|escapejs }}",
+                                cantidad: "{{ v.cantidad }}"
+                            },
+                        {% endfor %}
+                    ]
+                },
+            {% endfor %}
+        ];
+
+        var datosModalTemporal = {};
+        var clienteActualModal = null;
+        var filaClienteActual = null;
+        var filasVehiculosAgregadas = 0;
+        var filasAgregadas = 0;
+        var confirmacionCallback = null;
+
+        // Cargar datos precargados en datosModalTemporal
+        detallesPrecargados.forEach(function(detalle) {
+            datosModalTemporal[detalle.cliente_id] = detalle.vehiculos;
+        });
+
+        function mostrarMensaje(texto, tipo) {
+            var mensaje = document.getElementById('mensaje-alerta');
+            var icono = document.getElementById('mensaje-icono');
+            var textoEl = document.getElementById('mensaje-texto');
+            var botonAceptar = document.getElementById('mensaje-aceptar');
+            var botonCancelar = document.getElementById('mensaje-cancelar');
+
+            if (tipo === 'error') {
+                icono.textContent = '⚠️';
+            } else if (tipo === 'success') {
+                icono.textContent = '✅';
+            } else {
+                icono.textContent = 'ℹ️';
+            }
+
+            textoEl.textContent = texto;
+            botonCancelar.style.display = 'none';
+            confirmacionCallback = null;
+            mensaje.style.display = 'block';
+        }
+
+        function cerrarMensaje() {
+            document.getElementById('mensaje-alerta').style.display = 'none';
+            confirmacionCallback = null;
+        }
+
+        function mostrarMensajeConfirmacion(texto, callback) {
+            var mensaje = document.getElementById('mensaje-alerta');
+            var icono = document.getElementById('mensaje-icono');
+            var textoEl = document.getElementById('mensaje-texto');
+            var botonAceptar = document.getElementById('mensaje-aceptar');
+            var botonCancelar = document.getElementById('mensaje-cancelar');
+
+            icono.textContent = '⚠️';
+            textoEl.textContent = texto;
+            botonCancelar.style.display = 'inline-block';
+            confirmacionCallback = callback;
+            mensaje.style.display = 'block';
+        }
+
+        function cancelarConfirmacion() {
+            document.getElementById('mensaje-alerta').style.display = 'none';
+            confirmacionCallback = null;
+        }
+
+        // Sobreescribir el onclick del botón aceptar
+        document.getElementById('mensaje-aceptar').onclick = function() {
+            if (confirmacionCallback) {
+                confirmacionCallback();
+            }
+            cerrarMensaje();
+        };
+
+        function obtenerClientesDisponibles() {
+            var seleccionados = [];
+            var filas = document.querySelectorAll('#tbody-solicitud tr');
+            filas.forEach(function (fila) {
+                var select = fila.querySelector('.select-cliente');
+                var divCliente = fila.querySelector('.td-cliente');
+                if (select && select.value) {
+                    seleccionados.push(select.value);
+                } else if (divCliente && divCliente.dataset.clienteId) {
+                    seleccionados.push(divCliente.dataset.clienteId);
+                }
+            });
+            return clientesDisponibles.filter(function (cliente) {
+                return !seleccionados.includes(String(cliente.id));
+            });
+        }
+
+        function agregarFila(clienteIdGuardado, anexoGuardado, cantidadGuardada) {
+            var tbody = document.getElementById('tbody-solicitud');
+            var disponibles = obtenerClientesDisponibles();
+
+            if (disponibles.length === 0 && !clienteIdGuardado) {
+                var mensajeDiv = document.getElementById('mensaje-sin-clientes');
+                mensajeDiv.style.display = 'block';
+                setTimeout(function () {
+                    mensajeDiv.style.display = 'none';
+                }, 3000);
+                return;
+            }
+
+            var fila = document.createElement('tr');
+            fila.id = 'fila-' + filasAgregadas;
+
+            var selectHTML = '<select class="form-control form-control-sm select-cliente" onchange="clienteSeleccionado(this)">';
+            selectHTML += '<option value="">Seleccione...</option>';
+            disponibles.forEach(function (cliente) {
+                selectHTML += '<option value="' + cliente.id + '">' + cliente.nombre + '</option>';
+            });
+            selectHTML += '</select>';
+
+            var checkHTML = '<input type="checkbox" value="" class="form-check-input checkbox-anexo" disabled>';
+            var cantHTML = '<input type="number" class="form-control form-control-sm cant-abastecer" placeholder="0.00" step="0.01" min="0.01" readonly>';
+
+            var quitarHTML = '<button type="button" class="btn-quitar" onclick="quitarFila(this)" title="Quitar fila"><i class="bi bi-trash"></i></button>';
+
+            fila.innerHTML = '<td>' + selectHTML + '</td>' +
+                '<td class="td-clasificacion"></td>' +
+                '<td class="td-anexo" onclick="toggleCheckbox(this)" style="cursor: pointer;">' + checkHTML + '</td>' +
+                '<td>' + cantHTML + '</td>' +
+                '<td>' + quitarHTML + '</td>';
+
+            tbody.appendChild(fila);
+
+            if (clienteIdGuardado) {
+                var select = fila.querySelector('.select-cliente');
+                select.value = clienteIdGuardado;
+                clienteSeleccionado(select);
+
+                if (cantidadGuardada) {
+                    var cantInput = fila.querySelector('.cant-abastecer');
+                    cantInput.value = cantidadGuardada;
+                }
+
+                // Restaurar estado del checkbox después de clienteSeleccionado
+                if (anexoGuardado !== undefined && anexoGuardado !== null) {
+                    var checkbox = fila.querySelector('.checkbox-anexo');
+                    if (checkbox) {
+                        checkbox.checked = anexoGuardado;
+                    }
+                }
+            }
+
+            filasAgregadas++;
+        }
+
+        function clienteSeleccionado(select) {
+            var fila = select.closest('tr');
+            var clienteId = select.value;
+            var tdClasificacion = fila.querySelector('.td-clasificacion');
+            var checkboxAnexo = fila.querySelector('.checkbox-anexo');
+
+            if (clienteId) {
+                var cliente = clientesDisponibles.find(function (c) {
+                    return c.id == clienteId;
+                });
+
+                if (cliente) {
+                    var divCliente = document.createElement('div');
+                    divCliente.className = 'td-cliente';
+                    divCliente.textContent = cliente.nombre;
+                    divCliente.dataset.clienteId = clienteId;
+                    divCliente.style.cursor = 'pointer';
+                    divCliente.onclick = function () {
+                        abrirModalVehiculos(fila, clienteId);
+                    };
+                    select.replaceWith(divCliente);
+
+                    var clasificacionTexto = '';
+                    if (cliente.clasificacion === 'consumo') clasificacionTexto = 'Consumo';
+                    else if (cliente.clasificacion === 'venta') clasificacionTexto = 'Venta';
+                    else if (cliente.clasificacion === 'factura') clasificacionTexto = 'En Factura de Servicio';
+                    tdClasificacion.textContent = clasificacionTexto;
+
+                    if (cliente.clasificacion === 'consumo' || cliente.clasificacion === 'factura') {
+                        checkboxAnexo.checked = true;
+                        checkboxAnexo.disabled = true;
+                        checkboxAnexo.value = clienteId;
+                    } else {
+                        checkboxAnexo.checked = false;
+                        checkboxAnexo.disabled = false;
+                        checkboxAnexo.value = clienteId;
+                    }
+
+                    if (!datosModalTemporal[clienteId]) {
+                        datosModalTemporal[clienteId] = [];
+                    }
+                }
+            }
+
+            actualizarSelects();
+            calcularTotales();
+        }
+
+        function toggleCheckbox(td) {
+            var checkbox = td.querySelector('.checkbox-anexo');
+            if (checkbox && !checkbox.disabled) {
+                checkbox.checked = !checkbox.checked;
+            }
+        }
+
+        function actualizarSelects() {
+            var filas = document.querySelectorAll('#tbody-solicitud tr');
+            var seleccionados = [];
+
+            filas.forEach(function (fila) {
+                var select = fila.querySelector('.select-cliente');
+                var divCliente = fila.querySelector('.td-cliente');
+                if (select && select.value && !select.disabled) {
+                    seleccionados.push(select.value);
+                } else if (divCliente && divCliente.dataset.clienteId) {
+                    seleccionados.push(divCliente.dataset.clienteId);
+                }
+            });
+
+            filas.forEach(function (fila) {
+                var select = fila.querySelector('.select-cliente');
+                if (select && !select.disabled) {
+                    var valorActual = select.value;
+                    var disponibles = clientesDisponibles.filter(function (cliente) {
+                        return !seleccionados.includes(String(cliente.id)) || String(cliente.id) === valorActual;
+                    });
+
+                    var html = '<option value="">Seleccione...</option>';
+                    disponibles.forEach(function (cliente) {
+                        html += '<option value="' + cliente.id + '"' + (String(cliente.id) === valorActual ? ' selected' : '') + '>' + cliente.nombre + '</option>';
+                    });
+                    select.innerHTML = html;
+                }
+            });
+        }
+
+        function quitarFila(btn) {
+            var fila = btn.closest('tr');
+            var select = fila.querySelector('.select-cliente');
+            var divCliente = fila.querySelector('.td-cliente');
+            var clienteId = select ? select.value : (divCliente ? divCliente.dataset.clienteId : null);
+
+            if (clienteId && datosModalTemporal[clienteId] && datosModalTemporal[clienteId].length > 0) {
+                mostrarMensajeConfirmacion('Este cliente tiene datos de vehículos guardados. ¿Está seguro de eliminarlo? Se perderán esos datos.', function () {
+                    delete datosModalTemporal[clienteId];
+                    fila.remove();
+                    actualizarSelects();
+                    calcularTotales();
+                });
+            } else {
+                fila.remove();
+                actualizarSelects();
+                calcularTotales();
+            }
+        }
+
+        function abrirModalVehiculos(filaCliente, clienteId) {
+            clienteActualModal = clienteId;
+            filaClienteActual = filaCliente;
+            filasVehiculosAgregadas = 0;
+
+            var cliente = clientesDisponibles.find(function (c) {
+                return c.id == clienteId;
+            });
+            if (cliente) {
+                document.getElementById('modal-cliente-nombre').textContent = cliente.nombre;
+                var clasificacionTexto = '';
+                if (cliente.clasificacion === 'consumo') clasificacionTexto = 'Consumo';
+                else if (cliente.clasificacion === 'venta') clasificacionTexto = 'Venta';
+                else if (cliente.clasificacion === 'factura') clasificacionTexto = 'En Factura de Servicio';
+                document.getElementById('modal-cliente-clasificacion').textContent = clasificacionTexto;
+            }
+
+            document.getElementById('tbody-vehiculos-modal').innerHTML = '';
+
+            var datosGuardados = datosModalTemporal[clienteId] || [];
+            datosGuardados.forEach(function (dato) {
+                agregarFilaVehiculoConDatos(dato);
+            });
+
+            if (datosGuardados.length === 0) {
+                agregarFilaVehiculo();
+            }
+
+            var modal = new bootstrap.Modal(document.getElementById('modalVehiculos'));
+            modal.show();
+        }
+
+        function obtenerVehiculosDisponibles(clienteId) {
+            var seleccionados = [];
+            var filas = document.querySelectorAll('#tbody-vehiculos-modal tr');
+            filas.forEach(function (fila) {
+                var select = fila.querySelector('.select-vehiculo');
+                if (select && select.value) {
+                    seleccionados.push(select.value);
+                }
+            });
+
+            var vehiculos = vehiculosPorCliente[clienteId] || [];
+            return vehiculos.filter(function (vehiculo) {
+                return !seleccionados.includes(String(vehiculo.id));
+            });
+        }
+
+        function agregarFilaVehiculo() {
+            var disponibles = obtenerVehiculosDisponibles(clienteActualModal);
+
+            if (disponibles.length === 0) {
+                var mensajeDiv = document.getElementById('mensaje-sin-vehiculos');
+                mensajeDiv.style.display = 'block';
+                setTimeout(function () {
+                    mensajeDiv.style.display = 'none';
+                }, 3000);
+                return;
+            }
+
+            agregarFilaVehiculoConDatos(null);
+        }
+
+        function agregarFilaVehiculoConDatos(datoExistente) {
+            var tbody = document.getElementById('tbody-vehiculos-modal');
+            var disponibles = obtenerVehiculosDisponibles(clienteActualModal);
+
+            var fila = document.createElement('tr');
+            fila.id = 'fila-vehiculo-' + filasVehiculosAgregadas;
+
+            var tiposUnicos = [...new Set(disponibles.map(function (v) {
+                return v.tipo_vehiculo;
+            }))].sort();
+            var selectTipoHTML = '<select class="form-control form-control-sm select-tipo-vehiculo" onchange="actualizarChapas(this)">';
+            selectTipoHTML += '<option value="">Seleccione...</option>';
+            tiposUnicos.forEach(function (tipo) {
+                selectTipoHTML += '<option value="' + tipo + '">' + tipo + '</option>';
+            });
+            selectTipoHTML += '</select>';
+
+            var selectChapaHTML = '<select class="form-control form-control-sm select-vehiculo" onchange="vehiculoSeleccionado(this)">';
+            selectChapaHTML += '<option value="">Seleccione tipo primero...</option>';
+            selectChapaHTML += '</select>';
+
+            var actividadHTML = '<input type="text" class="form-control form-control-sm input-actividad" placeholder="Actividad">';
+
+            var cantHTML = '<input type="number" class="form-control form-control-sm input-cant-vehiculo" placeholder="0.00" step="0.01" min="0.01">';
+
+            var quitarHTML = '<button type="button" class="btn-quitar" onclick="quitarFilaVehiculo(this)" title="Quitar vehículo"><i class="bi bi-trash"></i></button>';
+
+            fila.innerHTML = '<td>' + selectTipoHTML + '</td>' +
+                '<td>' + selectChapaHTML + '</td>' +
+                '<td>' + actividadHTML + '</td>' +
+                '<td>' + cantHTML + '</td>' +
+                '<td>' + quitarHTML + '</td>';
+
+            tbody.appendChild(fila);
+
+            if (datoExistente) {
+                fila.querySelector('.select-tipo-vehiculo').value = datoExistente.tipo_vehiculo;
+                actualizarChapas(fila.querySelector('.select-tipo-vehiculo'));
+                fila.querySelector('.select-vehiculo').value = datoExistente.vehiculo_id;
+                fila.querySelector('.select-vehiculo').disabled = true;
+                fila.querySelector('.input-actividad').value = datoExistente.actividad;
+                fila.querySelector('.input-cant-vehiculo').value = datoExistente.cantidad;
+            }
+
+            filasVehiculosAgregadas++;
+        }
+
+        function actualizarChapas(selectTipo) {
+            var fila = selectTipo.closest('tr');
+            var selectChapa = fila.querySelector('.select-vehiculo');
+            var tipoSeleccionado = selectTipo.value;
+
+            var vehiculos = vehiculosPorCliente[clienteActualModal] || [];
+            var seleccionados = [];
+            var filas = document.querySelectorAll('#tbody-vehiculos-modal tr');
+            filas.forEach(function (f) {
+                var s = f.querySelector('.select-vehiculo');
+                if (s && s.value && f !== fila) {
+                    seleccionados.push(s.value);
+                }
+            });
+
+            var chapasFiltradas = vehiculos.filter(function (v) {
+                return v.tipo_vehiculo === tipoSeleccionado && !seleccionados.includes(String(v.id));
+            });
+
+            var html = '<option value="">Seleccione...</option>';
+            chapasFiltradas.forEach(function (vehiculo) {
+                html += '<option value="' + vehiculo.id + '">' + vehiculo.chapa + '</option>';
+            });
+            selectChapa.innerHTML = html;
+        }
+
+        function vehiculoSeleccionado(select) {
+            if (select.value) {
+                select.disabled = true;
+            }
+            actualizarChapasDeTodas();
+        }
+
+        function actualizarChapasDeTodas() {
+            var filas = document.querySelectorAll('#tbody-vehiculos-modal tr');
+            filas.forEach(function (fila) {
+                var selectTipo = fila.querySelector('.select-tipo-vehiculo');
+                var selectChapa = fila.querySelector('.select-vehiculo');
+                if (selectTipo && selectChapa && !selectChapa.disabled) {
+                    actualizarChapas(selectTipo);
+                }
+            });
+        }
+
+        function quitarFilaVehiculo(btn) {
+            var fila = btn.closest('tr');
+            fila.remove();
+            actualizarChapasDeTodas();
+        }
+
+        function guardarModalVehiculos() {
+            var filas = document.querySelectorAll('#tbody-vehiculos-modal tr');
+            var datosVehiculos = [];
+            var hayError = false;
+
+            filas.forEach(function (fila) {
+                var selectTipo = fila.querySelector('.select-tipo-vehiculo');
+                var selectChapa = fila.querySelector('.select-vehiculo');
+                var actividad = fila.querySelector('.input-actividad');
+                var cantidad = fila.querySelector('.input-cant-vehiculo');
+
+                if (selectChapa.value && selectChapa.value !== '') {
+                    var cantidadValor = parseFloat(cantidad.value) || 0;
+                    var errorFila = false;
+
+                    if (!actividad.value.trim()) {
+                        errorFila = true;
+                        actividad.classList.add('is-invalid');
+                    } else {
+                        actividad.classList.remove('is-invalid');
+                    }
+
+                    if (cantidadValor <= 0) {
+                        errorFila = true;
+                        cantidad.classList.add('is-invalid');
+                    } else {
+                        cantidad.classList.remove('is-invalid');
+                    }
+
+                    if (!errorFila) {
+                        var vehiculo = vehiculosPorCliente[clienteActualModal].find(function (v) {
+                            return v.id == selectChapa.value;
+                        });
+                        datosVehiculos.push({
+                            vehiculo_id: selectChapa.value,
+                            tipo_vehiculo: selectTipo.value,
+                            chapa: vehiculo ? vehiculo.chapa : '',
+                            actividad: actividad.value.trim(),
+                            cantidad: cantidadValor
+                        });
+                    } else {
+                        hayError = true;
+                    }
+                }
+            });
+
+            if (hayError) {
+                mostrarMensaje('Todos los campos deben estar llenos y la cantidad debe ser mayor que 0.', 'error');
+                return;
+            }
+
+            if (datosVehiculos.length === 0) {
+                mostrarMensaje('Debe agregar al menos un vehículo.', 'error');
+                return;
+            }
+
+            datosModalTemporal[clienteActualModal] = datosVehiculos;
+
+            var sumaCantidades = datosVehiculos.reduce(function (acc, dato) {
+                return acc + dato.cantidad;
+            }, 0);
+
+            var filasPrincipales = document.querySelectorAll('#tbody-solicitud tr');
+            filasPrincipales.forEach(function (fila) {
+                var select = fila.querySelector('.select-cliente');
+                var divCliente = fila.querySelector('.td-cliente');
+                var clienteIdFila = select ? select.value : (divCliente ? divCliente.dataset.clienteId : null);
+
+                if (clienteIdFila == clienteActualModal) {
+                    var cantInput = fila.querySelector('.cant-abastecer');
+                    cantInput.value = sumaCantidades.toFixed(2);
+                }
+            });
+
+            calcularTotales();
+
+            var modal = bootstrap.Modal.getInstance(document.getElementById('modalVehiculos'));
+            modal.hide();
+        }
+
+        function calcularTotales() {
+            var totalConsumo = 0;
+            var totalVenta = 0;
+            var filas = document.querySelectorAll('#tbody-solicitud tr');
+
+            filas.forEach(function (fila) {
+                var select = fila.querySelector('.select-cliente');
+                var divCliente = fila.querySelector('.td-cliente');
+                var clienteIdFila = select ? select.value : (divCliente ? divCliente.dataset.clienteId : null);
+                var cantidadInput = fila.querySelector('.cant-abastecer');
+                var cantidad = parseFloat(cantidadInput.value) || 0;
+
+                if (clienteIdFila) {
+                    var cliente = clientesDisponibles.find(function (c) {
+                        return c.id == clienteIdFila;
+                    });
+                    if (cliente) {
+                        if (cliente.clasificacion === 'venta') {
+                            totalVenta += cantidad;
+                        } else {
+                            totalConsumo += cantidad;
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('total-consumo').textContent = totalConsumo.toFixed(2);
+            document.getElementById('total-venta').textContent = totalVenta.toFixed(2);
+            document.getElementById('total-general').textContent = (totalConsumo + totalVenta).toFixed(2);
+        }
+
+        // Confirmar guardar
+        function confirmarGuardar() {
+            mostrarMensajeConfirmacion('¿Desea guardar los cambios realizados?', function() {
+                ejecutarEnvio();
+            });
+        }
+
+        // Función que agrega campos ocultos y envía el formulario
+        function ejecutarEnvio() {
+            var filas = document.querySelectorAll('#tbody-solicitud tr');
+            var hayError = false;
+            var camposOcultos = document.getElementById('campos-ocultos');
+            camposOcultos.innerHTML = '';
+            var filasConDatos = 0;
+
+            filas.forEach(function (fila) {
+                var select = fila.querySelector('.select-cliente');
+                var divCliente = fila.querySelector('.td-cliente');
+                var clienteIdFila = null;
+
+                if (select && select.value) {
+                    clienteIdFila = select.value;
+                } else if (divCliente && divCliente.dataset.clienteId) {
+                    clienteIdFila = divCliente.dataset.clienteId;
+                }
+
+                var checkbox = fila.querySelector('.checkbox-anexo');
+                var cantidad = fila.querySelector('.cant-abastecer');
+
+                if (clienteIdFila && clienteIdFila !== '') {
+                    filasConDatos++;
+                    var cantidadValor = parseFloat(cantidad.value) || 0;
+
+                    if (cantidadValor <= 0) {
+                        hayError = true;
+                        cantidad.classList.add('is-invalid');
+                    } else {
+                        cantidad.classList.remove('is-invalid');
+                    }
+
+                    var cliente = clientesDisponibles.find(function (c) {
+                        return c.id == clienteIdFila;
+                    });
+                    if (cliente && cliente.clasificacion === 'venta' && !checkbox.checked) {
+                        hayError = true;
+                        mostrarMensaje('El cliente ' + cliente.nombre + ' es de Venta y debe tener el Anexo 2 aprobado.', 'error');
+                    }
+
+                    var inputClienteId = document.createElement('input');
+                    inputClienteId.type = 'hidden';
+                    inputClienteId.name = 'cliente_id';
+                    inputClienteId.value = clienteIdFila;
+                    camposOcultos.appendChild(inputClienteId);
+
+                    if (checkbox.checked || checkbox.disabled) {
+                        var inputAnexo = document.createElement('input');
+                        inputAnexo.type = 'hidden';
+                        inputAnexo.name = 'anexo_2';
+                        inputAnexo.value = clienteIdFila;
+                        camposOcultos.appendChild(inputAnexo);
+                    }
+
+                    var inputCantidad = document.createElement('input');
+                    inputCantidad.type = 'hidden';
+                    inputCantidad.name = 'cant_abastecer';
+                    inputCantidad.value = cantidad.value;
+                    camposOcultos.appendChild(inputCantidad);
+
+                    var vehiculos = datosModalTemporal[clienteIdFila] || [];
+                    vehiculos.forEach(function (v) {
+                        var input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'vehiculos_' + clienteIdFila;
+                        input.value = v.vehiculo_id + '|' + v.actividad + '|' + v.cantidad;
+                        camposOcultos.appendChild(input);
+                    });
+                }
+            });
+
+            if (filasConDatos === 0) {
+                mostrarMensaje('Debe agregar al menos un cliente a la solicitud.', 'error');
+                return;
+            }
+
+            if (hayError) {
+                mostrarMensaje('Hay errores en el formulario. Verifique las cantidades y el Anexo 2.', 'error');
+                return;
+            }
+
+            // Ahora sí enviar el formulario
+            document.getElementById('form-solicitud').submit();
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var fechaHora = document.getElementById('fecha_hora');
+            if (!fechaHora.value) {
+                var now = new Date();
+                var fecha = now.getFullYear() + '-' +
+                    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(now.getDate()).padStart(2, '0') + 'T' +
+                    String(now.getHours()).padStart(2, '0') + ':' +
+                    String(now.getMinutes()).padStart(2, '0');
+                fechaHora.value = fecha;
+            }
+
+            // Cargar detalles precargados
+            detallesPrecargados.forEach(function(detalle) {
+                agregarFila(detalle.cliente_id, detalle.anexo_2, detalle.cantidad);
+            });
+
+            // Si no hay filas, agregar una
+            if (document.querySelectorAll('#tbody-solicitud tr').length === 0) {
+                agregarFila();
+            }
+        });
+    </script>
+{% endblock %}

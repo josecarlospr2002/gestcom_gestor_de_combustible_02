@@ -66,6 +66,7 @@ class ModeloSolicitud(models.Model):
 
     fecha_hora = models.DateTimeField(verbose_name='Fecha y Hora')
     estado = models.CharField(max_length=20, choices=ESTADOS, default='borrador', verbose_name='Estado')
+    motivo_rechazo = models.TextField(blank=True, null=True, verbose_name='Motivo del Rechazo')
     total_consumo = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Total de Consumo')
     total_venta = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Total de Venta')
     total_general = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Total General')
