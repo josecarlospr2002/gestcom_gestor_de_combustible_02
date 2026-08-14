@@ -4,7 +4,7 @@ from django.contrib import messages
 from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud
+from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud, DetalleSolicitudVehiculo
 from .forms import CatalogoClienteForm, TransporteForm
 
 
@@ -120,7 +120,7 @@ def lista_solicitudes(request):
 
 @login_required
 def crear_solicitud(request):
-    clientes = CatalogoCliente.objects.all()
+    clientes = CatalogoCliente.objects.prefetch_related('transportes').all()
 
     if request.method == 'POST':
         fecha_hora = request.POST.get('fecha_hora', '')
@@ -212,18 +212,35 @@ def crear_solicitud(request):
             total_general=total_general
         )
 
-        # Crear detalles
+        # Crear detalles y vehículos
         for i, cliente_id in enumerate(cliente_ids):
             cliente = CatalogoCliente.objects.get(pk=cliente_id)
             cant_str = cantidades[i]
             anexo_2 = str(cliente_id) in anexo_2_list
 
-            DetalleSolicitud.objects.create(
+            detalle = DetalleSolicitud.objects.create(
                 solicitud=solicitud,
                 cliente=cliente,
                 anexo_2=anexo_2,
                 cant_abastecer=Decimal(cant_str)
             )
+
+            # Guardar vehículos del cliente
+            # Los datos vienen en formato: transporte_id|actividad|cantidad
+            vehiculos_data = request.POST.getlist(f'vehiculos_{cliente_id}')
+            for vehiculo_data in vehiculos_data:
+                partes = vehiculo_data.split('|')
+                if len(partes) == 3:
+                    transporte_id = partes[0]
+                    actividad = partes[1]
+                    cantidad_vehiculo = partes[2]
+
+                    DetalleSolicitudVehiculo.objects.create(
+                        detalle_solicitud=detalle,
+                        transporte_id=transporte_id,
+                        actividad=actividad,
+                        cant_abastecer=Decimal(cantidad_vehiculo)
+                    )
 
         messages.success(request, 'Solicitud creada correctamente.')
         return redirect('lista_solicitudes')

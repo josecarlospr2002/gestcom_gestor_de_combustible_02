@@ -91,3 +91,16 @@ class DetalleSolicitud(models.Model):
 
     def __str__(self):
         return f"{self.cliente.cliente} - {self.solicitud}"
+
+class DetalleSolicitudVehiculo(models.Model):
+    detalle_solicitud = models.ForeignKey(DetalleSolicitud, on_delete=models.CASCADE, related_name='vehiculos')
+    transporte = models.ForeignKey(Transporte, on_delete=models.CASCADE, verbose_name='Transporte')
+    actividad = models.CharField(max_length=100, verbose_name='Actividad')
+    cant_abastecer = models.DecimalField(max_digits=12, decimal_places=2, verbose_name='Cant. a Abastecer')
+
+    class Meta:
+        verbose_name = 'Detalle de Solicitud - Vehículo'
+        verbose_name_plural = 'Detalles de Solicitudes - Vehículos'
+
+    def __str__(self):
+        return f"{self.transporte.chapa} - {self.cant_abastecer}"
