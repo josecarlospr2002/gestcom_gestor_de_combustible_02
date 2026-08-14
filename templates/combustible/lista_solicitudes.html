@@ -27,6 +27,9 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
 .table tbody tr:hover {
     background-color: #f0f0ff;
 }
+.fila-clicable {
+    cursor: pointer;
+}
 .titulo-tabla {
     color: black;
 }
@@ -39,7 +42,7 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0 titulo-tabla">
-        <i class="bi bi-file-earmark-text"></i> Modelo de Solicitud
+        <i class="bi bi-file-earmark-text"></i> Solicitudes
     </h2>
     <div>
         <a href="{% url 'crear_solicitud' %}" class="btn btn-success fw-bold me-2">
@@ -61,11 +64,12 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                     <th>Total de Venta</th>
                     <th>Total General</th>
                     <th>Estado</th>
+                    <th>Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for solicitud in solicitudes %}
-                <tr>
+                <tr class="fila-clicable" onclick="window.location.href='{% url 'ver_solicitud' solicitud.id %}'">
                     <td>{{ solicitud.fecha_hora|date:"d/m/Y H:i" }}</td>
                     <td>{{ solicitud.total_consumo }}</td>
                     <td>{{ solicitud.total_venta }}</td>
@@ -80,10 +84,23 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                             {{ solicitud.get_estado_display }}
                         </span>
                     </td>
+                    <td onclick="event.stopPropagation();">
+                        {% if solicitud.estado == 'borrador' or solicitud.estado == 'rechazada' %}
+                            <a href="{% url 'editar_solicitud' solicitud.id %}" class="btn btn-sm text-white" style="background-color: #0370d0;" title="Modificar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="#" class="btn btn-sm text-white" style="background-color: #0b3d7b;" title="Enviar" onclick="confirmarEnviar('{% url 'enviar_solicitud' solicitud.id %}'); return false;">
+                                <i class="bi bi-send"></i>
+                            </a>
+                            <a href="#" class="btn btn-danger btn-sm" title="Eliminar" onclick="confirmarEliminar('{% url 'eliminar_solicitud' solicitud.id %}'); return false;">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center text-muted py-5">
+                    <td colspan="6" class="text-center text-muted py-5">
                         <i class="bi bi-inbox" style="font-size: 3rem;"></i>
                         <p class="mt-3 fs-5">No se encontraron solicitudes.</p>
                     </td>
@@ -97,4 +114,72 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
 <div class="mt-3 text-end contador">
     <strong>Total de solicitudes: {{ solicitudes|length }}</strong>
 </div>
+
+<!-- Modal Confirmar Eliminación -->
+<div class="modal fade" id="confirmarEliminar" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #dc3545, #6f42c1);">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-trash text-danger" style="font-size: 3rem;"></i>
+                <p class="mt-3 fs-5">¿Está seguro de eliminar esta solicitud?</p>
+                <small class="text-muted">Esta acción no se puede deshacer.</small>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <a href="#" id="confirmarEliminarBtn" class="btn btn-danger">
+                    <i class="bi bi-trash"></i> Eliminar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Envío -->
+<div class="modal fade" id="confirmarEnviarModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #0d6efd, #6f42c1);">
+                <h5 class="modal-title">
+                    <i class="bi bi-send-fill"></i> Confirmar Envío
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-send-check text-primary" style="font-size: 3rem;"></i>
+                <p class="mt-3 fs-5">¿Está seguro de enviar esta solicitud?</p>
+                <small class="text-muted">Una vez enviada, no podrá modificarla ni eliminarla.</small>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <a href="#" id="confirmarEnviarBtn" class="btn text-white" style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
+                    <i class="bi bi-send"></i> Enviar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmarEliminar(url) {
+    document.getElementById('confirmarEliminarBtn').href = url;
+    var modal = new bootstrap.Modal(document.getElementById('confirmarEliminar'));
+    modal.show();
+}
+
+function confirmarEnviar(url) {
+    document.getElementById('confirmarEnviarBtn').href = url;
+    var modal = new bootstrap.Modal(document.getElementById('confirmarEnviarModal'));
+    modal.show();
+}
+</script>
 {% endblock %}

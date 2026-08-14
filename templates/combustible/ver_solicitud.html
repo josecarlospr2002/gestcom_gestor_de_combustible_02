@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
+.card-solicitud {
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+.info-header {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0.2rem 0.5rem rgba(0, 0, 0, 0.06);
+    border: 2px solid #e0e0ff;
+    position: relative;
+}
+.info-header .info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.8rem 1.2rem;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+}
+.info-header .info-item:hover {
+    background: #f8f9ff;
+    transform: translateY(-2px);
+}
+.info-header .info-item .icon-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+.icon-fecha {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    color: #0d6efd;
+}
+.icon-estado {
+    background: linear-gradient(135deg, #f3e8ff, #e1bee7);
+    color: #6f42c1;
+}
+.info-header .info-text {
+    display: flex;
+    flex-direction: column;
+}
+.info-header .info-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+.info-header .info-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #212529;
+}
+.tabla-solicitud {
+    background: white;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+.tabla-solicitud thead th {
+    background: linear-gradient(135deg, #0d6efd, #6f42c1);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 0.7rem;
+    font-size: 0.85rem;
+    text-align: center;
+}
+.tabla-solicitud tbody td {
+    padding: 0.5rem;
+    vertical-align: middle;
+    border: none;
+    text-align: center;
+    font-size: 0.85rem;
+}
+.tabla-solicitud tbody tr {
+    background-color: white;
+}
+.tabla-solicitud tbody tr:hover {
+    background-color: #f0f0ff;
+}
+.td-cliente {
+    cursor: pointer;
+    text-decoration: underline;
+    font-weight: bold;
+    color: #0d6efd;
+}
+.td-cliente:hover {
+    background-color: #e8f0fe;
+}
+.totales {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+.totales .total-item {
+    font-size: 1rem;
+    font-weight: 600;
+}
+/* Checkbox personalizado */
+.checkbox-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.custom-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #0d6efd;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+.custom-checkbox.checked {
+    background: #0d6efd;
+    border-color: #0d6efd;
+}
+.custom-checkbox.checked::after {
+    content: '';
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-top: -2px;
+}
+.modal-xl-custom {
+    max-width: 90%;
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0" style="color: black;">
+        <i class="bi bi-eye"></i> Ver Solicitud
+    </h2>
+    <a href="{% url 'lista_solicitudes' %}" class="btn btn-danger fw-bold">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<div class="card-solicitud">
+    <div class="card-body p-4 bg-light">
+        <!-- Información de la solicitud integrada -->
+        <div class="info-header mb-3">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <div class="icon-circle icon-fecha">
+                            <i class="bi bi-calendar3"></i>
+                        </div>
+                        <div class="info-text">
+                            <span class="info-label">Fecha / Hora</span>
+                            <span class="info-value">{{ solicitud.fecha_hora|date:"d/m/Y H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-item">
+                        <div class="icon-circle icon-estado">
+                            <i class="bi bi-clipboard-check"></i>
+                        </div>
+                        <div class="info-text">
+                            <span class="info-label">Estado</span>
+                            <span class="info-value">{{ solicitud.get_estado_display }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de clientes -->
+        <div class="tabla-solicitud">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Clasificación</th>
+                        <th>Anexo 2</th>
+                        <th>Cant. a Abastecer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in detalles_con_vehiculos %}
+                    <tr>
+                        <td class="td-cliente" onclick="abrirModalVehiculos('{{ item.detalle.cliente.cliente|escapejs }}', '{{ item.detalle.cliente.get_clasificacion_display }}', {{ item.detalle.id }})">
+                            {{ item.detalle.cliente.cliente }}
+                        </td>
+                        <td>{{ item.detalle.cliente.get_clasificacion_display }}</td>
+                        <td>
+                            <div class="checkbox-wrapper">
+                                <div class="custom-checkbox {% if item.detalle.anexo_2 %}checked{% endif %}"></div>
+                            </div>
+                        </td>
+                        <td>{{ item.detalle.cant_abastecer }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-5">
+                            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                            <p class="mt-3 fs-5">No hay detalles para esta solicitud.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Totales -->
+        <div class="totales">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <span class="total-item text-primary">Total de Consumo: </span>
+                    <strong>{{ solicitud.total_consumo }}</strong>
+                </div>
+                <div class="col-md-4">
+                    <span class="total-item text-success">Total de Venta: </span>
+                    <strong>{{ solicitud.total_venta }}</strong>
+                </div>
+                <div class="col-md-4">
+                    <span class="total-item" style="color: #6f42c1;">Total General: </span>
+                    <strong>{{ solicitud.total_general }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="pb-4"></div>
+
+<!-- Modal de Vehículos -->
+<div class="modal fade" id="modalVehiculosVer" tabindex="-1">
+    <div class="modal-dialog modal-xl-custom modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #0d6efd, #6f42c1);">
+                <h5 class="modal-title">
+                    <i class="bi bi-truck"></i> Vehículos del Cliente
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <h5 style="color: #6f42c1;">
+                        <span id="modal-cliente-nombre" class="fw-bold"></span>
+                        <span class="text-muted"> - </span>
+                        <span id="modal-cliente-clasificacion" class="text-secondary"></span>
+                    </h5>
+                </div>
+
+                <div class="tabla-solicitud">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Tipo de Vehículo</th>
+                                <th>Chapa</th>
+                                <th>Actividad</th>
+                                <th>Cant. a Abastecer</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-vehiculos-modal">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Datos de vehículos por detalle
+var vehiculosPorDetalle = {
+    {% for item in detalles_con_vehiculos %}
+    {{ item.detalle.id }}: [
+        {% for vehiculo in item.vehiculos %}
+        {
+            tipo_vehiculo: "{{ vehiculo.transporte.tipo_vehiculo|escapejs }}",
+            chapa: "{{ vehiculo.transporte.chapa|escapejs }}",
+            actividad: "{{ vehiculo.actividad|escapejs }}",
+            cantidad: "{{ vehiculo.cant_abastecer }}"
+        },
+        {% endfor %}
+    ],
+    {% endfor %}
+};
+
+function abrirModalVehiculos(nombreCliente, clasificacion, detalleId) {
+    document.getElementById('modal-cliente-nombre').textContent = nombreCliente;
+    document.getElementById('modal-cliente-clasificacion').textContent = clasificacion;
+
+    var tbody = document.getElementById('tbody-vehiculos-modal');
+    tbody.innerHTML = '';
+
+    var vehiculos = vehiculosPorDetalle[detalleId] || [];
+
+    if (vehiculos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Sin vehículos registrados</td></tr>';
+    } else {
+        vehiculos.forEach(function(vehiculo) {
+            var fila = document.createElement('tr');
+            fila.innerHTML = '<td>' + vehiculo.tipo_vehiculo + '</td>' +
+                            '<td>' + vehiculo.chapa + '</td>' +
+                            '<td>' + vehiculo.actividad + '</td>' +
+                            '<td>' + vehiculo.cantidad + '</td>';
+            tbody.appendChild(fila);
+        });
+    }
+
+    var modal = new bootstrap.Modal(document.getElementById('modalVehiculosVer'));
+    modal.show();
+}
+</script>
+{% endblock %}

@@ -248,3 +248,58 @@ def crear_solicitud(request):
     return render(request, 'combustible/crear_solicitud.html', {
         'clientes': clientes,
     })
+
+
+@login_required
+def ver_solicitud(request, pk):
+    solicitud = get_object_or_404(ModeloSolicitud, pk=pk)
+    detalles = DetalleSolicitud.objects.filter(solicitud=solicitud).select_related('cliente')
+
+    # Obtener vehículos de cada detalle
+    detalles_con_vehiculos = []
+    for detalle in detalles:
+        vehiculos = DetalleSolicitudVehiculo.objects.filter(detalle_solicitud=detalle).select_related('transporte')
+        detalles_con_vehiculos.append({
+            'detalle': detalle,
+            'vehiculos': vehiculos
+        })
+
+    return render(request, 'combustible/ver_solicitud.html', {
+        'solicitud': solicitud,
+        'detalles_con_vehiculos': detalles_con_vehiculos,
+    })
+
+
+@login_required
+def editar_solicitud(request, pk):
+    solicitud = get_object_or_404(ModeloSolicitud, pk=pk)
+    if solicitud.estado not in ['borrador', 'rechazada']:
+        messages.error(request, 'Esta solicitud no se puede editar.')
+        return redirect('lista_solicitudes')
+
+    # Por ahora solo redirige a la lista (implementaremos la edición después)
+    messages.info(request, 'La funcionalidad de editar estará disponible próximamente.')
+    return redirect('lista_solicitudes')
+
+
+@login_required
+def enviar_solicitud(request, pk):
+    solicitud = get_object_or_404(ModeloSolicitud, pk=pk)
+    if solicitud.estado in ['borrador', 'rechazada']:
+        solicitud.estado = 'pendiente'
+        solicitud.save()
+        messages.success(request, 'Solicitud enviada correctamente.')
+    else:
+        messages.error(request, 'Esta solicitud no se puede enviar.')
+    return redirect('lista_solicitudes')
+
+
+@login_required
+def eliminar_solicitud(request, pk):
+    solicitud = get_object_or_404(ModeloSolicitud, pk=pk)
+    if solicitud.estado not in ['borrador', 'rechazada']:
+        messages.error(request, 'Esta solicitud no se puede eliminar.')
+        return redirect('lista_solicitudes')
+    solicitud.delete()
+    messages.success(request, 'Solicitud eliminada correctamente.')
+    return redirect('lista_solicitudes')
