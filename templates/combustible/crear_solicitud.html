@@ -138,6 +138,17 @@
             padding: 0.5rem 1.5rem;
             font-weight: 600;
             cursor: pointer;
+            margin-right: 0.5rem;
+        }
+
+        .mensaje-alerta .btn-cancelar {
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
         }
     </style>
 
@@ -230,7 +241,10 @@
     <div class="mensaje-alerta" id="mensaje-alerta">
         <div class="icono" id="mensaje-icono">⚠️</div>
         <div class="texto" id="mensaje-texto"></div>
-        <button type="button" class="btn-aceptar" onclick="cerrarMensaje()">Aceptar</button>
+        <div>
+            <button type="button" class="btn-aceptar" id="mensaje-aceptar" onclick="cerrarMensaje()">Aceptar</button>
+            <button type="button" class="btn-cancelar" id="mensaje-cancelar" style="display: none;" onclick="cancelarConfirmacion()">Cancelar</button>
+        </div>
     </div>
 
     <!-- Modal de Vehículos -->
@@ -322,11 +336,14 @@
         var filaClienteActual = null;
         var filasVehiculosAgregadas = 0;
         var filasAgregadas = 0;
+        var confirmacionCallback = null;
 
         function mostrarMensaje(texto, tipo) {
             var mensaje = document.getElementById('mensaje-alerta');
             var icono = document.getElementById('mensaje-icono');
             var textoEl = document.getElementById('mensaje-texto');
+            var botonAceptar = document.getElementById('mensaje-aceptar');
+            var botonCancelar = document.getElementById('mensaje-cancelar');
 
             if (tipo === 'error') {
                 icono.textContent = '⚠️';
@@ -337,12 +354,42 @@
             }
 
             textoEl.textContent = texto;
+            botonCancelar.style.display = 'none';
+            confirmacionCallback = null;
             mensaje.style.display = 'block';
         }
 
         function cerrarMensaje() {
             document.getElementById('mensaje-alerta').style.display = 'none';
+            confirmacionCallback = null;
         }
+
+        function mostrarMensajeConfirmacion(texto, callback) {
+            var mensaje = document.getElementById('mensaje-alerta');
+            var icono = document.getElementById('mensaje-icono');
+            var textoEl = document.getElementById('mensaje-texto');
+            var botonAceptar = document.getElementById('mensaje-aceptar');
+            var botonCancelar = document.getElementById('mensaje-cancelar');
+
+            icono.textContent = '⚠️';
+            textoEl.textContent = texto;
+            botonCancelar.style.display = 'inline-block';
+            confirmacionCallback = callback;
+            mensaje.style.display = 'block';
+        }
+
+        function cancelarConfirmacion() {
+            document.getElementById('mensaje-alerta').style.display = 'none';
+            confirmacionCallback = null;
+        }
+
+        // Sobreescribir el onclick del botón aceptar
+        document.getElementById('mensaje-aceptar').onclick = function() {
+            if (confirmacionCallback) {
+                confirmacionCallback();
+            }
+            cerrarMensaje();
+        };
 
         function obtenerClientesDisponibles() {
             var seleccionados = [];
@@ -361,11 +408,11 @@
             });
         }
 
-        function agregarFila() {
+        function agregarFila(clienteIdGuardado, anexoGuardado, cantidadGuardada) {
             var tbody = document.getElementById('tbody-solicitud');
             var disponibles = obtenerClientesDisponibles();
 
-            if (disponibles.length === 0) {
+            if (disponibles.length === 0 && !clienteIdGuardado) {
                 var mensajeDiv = document.getElementById('mensaje-sin-clientes');
                 mensajeDiv.style.display = 'block';
                 setTimeout(function () {
@@ -385,7 +432,6 @@
             selectHTML += '</select>';
 
             var checkHTML = '<input type="checkbox" value="" class="form-check-input checkbox-anexo" disabled>';
-
             var cantHTML = '<input type="number" class="form-control form-control-sm cant-abastecer" placeholder="0.00" step="0.01" min="0.01" readonly>';
 
             var quitarHTML = '<button type="button" class="btn-quitar" onclick="quitarFila(this)" title="Quitar fila"><i class="bi bi-trash"></i></button>';
@@ -397,6 +443,26 @@
                 '<td>' + quitarHTML + '</td>';
 
             tbody.appendChild(fila);
+
+            if (clienteIdGuardado) {
+                var select = fila.querySelector('.select-cliente');
+                select.value = clienteIdGuardado;
+                clienteSeleccionado(select);
+
+                if (cantidadGuardada) {
+                    var cantInput = fila.querySelector('.cant-abastecer');
+                    cantInput.value = cantidadGuardada;
+                }
+
+                // Restaurar estado del checkbox después de clienteSeleccionado
+                if (anexoGuardado !== undefined && anexoGuardado !== null) {
+                    var checkbox = fila.querySelector('.checkbox-anexo');
+                    if (checkbox) {
+                        checkbox.checked = anexoGuardado;
+                    }
+                }
+            }
+
             filasAgregadas++;
         }
 
@@ -504,23 +570,6 @@
                 actualizarSelects();
                 calcularTotales();
             }
-        }
-
-        // Mensaje de confirmación personalizado
-        function mostrarMensajeConfirmacion(texto, callback) {
-            var mensaje = document.getElementById('mensaje-alerta');
-            var icono = document.getElementById('mensaje-icono');
-            var textoEl = document.getElementById('mensaje-texto');
-            var botonAceptar = mensaje.querySelector('.btn-aceptar');
-
-            icono.textContent = '⚠️';
-            textoEl.textContent = texto;
-            mensaje.style.display = 'block';
-
-            botonAceptar.onclick = function () {
-                mensaje.style.display = 'none';
-                callback();
-            };
         }
 
         function abrirModalVehiculos(filaCliente, clienteId) {
@@ -794,6 +843,55 @@
             document.getElementById('total-general').textContent = (totalConsumo + totalVenta).toFixed(2);
         }
 
+        // Guardar estado de la tabla antes de enviar
+        function guardarEstadoTabla() {
+            var filas = document.querySelectorAll('#tbody-solicitud tr');
+            var estado = [];
+
+            filas.forEach(function(fila) {
+                var select = fila.querySelector('.select-cliente');
+                var divCliente = fila.querySelector('.td-cliente');
+                var clienteIdFila = select ? select.value : (divCliente ? divCliente.dataset.clienteId : null);
+                var checkbox = fila.querySelector('.checkbox-anexo');
+                var cantidad = fila.querySelector('.cant-abastecer');
+
+                if (clienteIdFila && clienteIdFila !== '') {
+                    estado.push({
+                        cliente_id: clienteIdFila,
+                        anexo_2: checkbox ? (checkbox.checked || checkbox.disabled) : false,
+                        cantidad: cantidad ? cantidad.value : '0',
+                        vehiculos: datosModalTemporal[clienteIdFila] || []
+                    });
+                }
+            });
+
+            localStorage.setItem('solicitud_estado', JSON.stringify(estado));
+            localStorage.setItem('solicitud_fecha', document.getElementById('fecha_hora').value);
+        }
+
+        // Restaurar estado de la tabla al cargar
+        function restaurarEstadoTabla() {
+            var estadoGuardado = localStorage.getItem('solicitud_estado');
+            var fechaGuardada = localStorage.getItem('solicitud_fecha');
+
+            if (fechaGuardada) {
+                document.getElementById('fecha_hora').value = fechaGuardada;
+            }
+
+            if (estadoGuardado) {
+                var estado = JSON.parse(estadoGuardado);
+                estado.forEach(function(dato) {
+                    agregarFila(dato.cliente_id, dato.anexo_2, dato.cantidad);
+                    if (dato.vehiculos && dato.vehiculos.length > 0) {
+                        datosModalTemporal[dato.cliente_id] = dato.vehiculos;
+                    }
+                });
+                calcularTotales();
+                localStorage.removeItem('solicitud_estado');
+                localStorage.removeItem('solicitud_fecha');
+            }
+        }
+
         // Enviar formulario
         document.getElementById('form-solicitud').addEventListener('submit', function (e) {
             var filas = document.querySelectorAll('#tbody-solicitud tr');
@@ -809,7 +907,6 @@
                 var checkbox = fila.querySelector('.checkbox-anexo');
                 var cantidad = fila.querySelector('.cant-abastecer');
 
-                // SOLO procesar filas que tengan cliente seleccionado
                 if (clienteIdFila && clienteIdFila !== '') {
                     filasConDatos++;
                     var cantidadValor = parseFloat(cantidad.value) || 0;
@@ -829,7 +926,6 @@
                         mostrarMensaje('El cliente ' + cliente.nombre + ' es de Venta y debe tener el Anexo 2 aprobado.', 'error');
                     }
 
-                    // AGREGAR CAMPOS OCULTOS PARA CADA CLIENTE CON DATOS
                     var inputClienteId = document.createElement('input');
                     inputClienteId.type = 'hidden';
                     inputClienteId.name = 'cliente_id';
@@ -850,7 +946,6 @@
                     inputCantidad.value = cantidad.value;
                     camposOcultos.appendChild(inputCantidad);
 
-                    // Agregar vehículos
                     var vehiculos = datosModalTemporal[clienteIdFila] || [];
                     vehiculos.forEach(function (v) {
                         var input = document.createElement('input');
@@ -862,7 +957,6 @@
                 }
             });
 
-            // Validar que haya al menos un cliente con datos
             if (filasConDatos === 0) {
                 e.preventDefault();
                 mostrarMensaje('Debe agregar al menos un cliente a la solicitud.', 'error');
@@ -874,6 +968,9 @@
                 mostrarMensaje('Hay errores en el formulario. Verifique las cantidades y el Anexo 2.', 'error');
                 return;
             }
+
+            // Guardar estado antes de enviar
+            guardarEstadoTabla();
         });
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -888,7 +985,13 @@
                 fechaHora.value = fecha;
             }
 
-            agregarFila();
+            // Restaurar estado si existe
+            restaurarEstadoTabla();
+
+            // Si no hay filas, agregar una
+            if (document.querySelectorAll('#tbody-solicitud tr').length === 0) {
+                agregarFila();
+            }
         });
     </script>
 {% endblock %}
