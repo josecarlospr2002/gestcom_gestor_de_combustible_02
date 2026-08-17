@@ -514,13 +514,16 @@
 
             if (clienteIdGuardado) {
                 var select = fila.querySelector('.select-cliente');
-                select.value = clienteIdGuardado;
-                clienteSeleccionado(select);
 
+                // CORRECCIÓN: Asignar cantidad ANTES de seleccionar cliente
                 if (cantidadGuardada) {
                     var cantInput = fila.querySelector('.cant-abastecer');
                     cantInput.value = cantidadGuardada;
                 }
+
+                // Luego seleccionar cliente (esto llama a calcularTotales)
+                select.value = clienteIdGuardado;
+                clienteSeleccionado(select);
 
                 // Restaurar estado del checkbox después de clienteSeleccionado
                 if (anexoGuardado !== undefined && anexoGuardado !== null) {
@@ -1025,6 +1028,9 @@
             if (document.querySelectorAll('#tbody-solicitud tr').length === 0) {
                 agregarFila();
             }
+
+            // CORRECCIÓN: Calcular totales una vez más después de cargar todas las filas
+            calcularTotales();
         });
     </script>
 {% endblock %}

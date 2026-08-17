@@ -51,9 +51,11 @@
             <i class="bi bi-truck"></i> Vehículos Registrados
         </h2>
         <div>
-            <a href="{% url 'crear_vehiculo' %}" class="btn btn-success fw-bold me-2">
-                <i class="bi bi-plus-circle"></i> Nuevo Vehículo
-            </a>
+            {% if user.departamento == 'admin' or user.departamento == 'transporte' %}
+                <a href="{% url 'crear_vehiculo' %}" class="btn btn-success fw-bold me-2">
+                    <i class="bi bi-plus-circle"></i> Nuevo Vehículo
+                </a>
+            {% endif %}
             <a href="{% url 'dashboard' %}" class="btn btn-danger fw-bold">
                 <i class="bi bi-arrow-left"></i> Volver al Inicio
             </a>
@@ -80,15 +82,16 @@
                         <td>{{ vehiculo.chapa }}</td>
                         <td>{{ vehiculo.ic }}</td>
                         <td>
-                            <a href="{% url 'editar_vehiculo' vehiculo.id %}" class="btn btn-primary btn-sm"
-                               title="Modificar">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            </a>
-                            <a href="#" class="btn btn-danger btn-sm" title="Eliminar"
-                               onclick="confirmarEliminar('{% url 'eliminar_vehiculo' vehiculo.id %}'); return false;">
-                                <i class="bi bi-trash"></i>
-                            </a>
+                            {% if user.departamento == 'admin' or user.departamento == 'transporte' %}
+                                <a href="{% url 'editar_vehiculo' vehiculo.id %}" class="btn btn-primary btn-sm"
+                                   title="Modificar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="#" class="btn btn-danger btn-sm" title="Eliminar"
+                                   onclick="confirmarEliminar('{% url 'eliminar_vehiculo' vehiculo.id %}'); return false;">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            {% endif %}
                         </td>
                     </tr>
                 {% empty %}

@@ -1,63 +1,75 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<style>
-body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
-.table-container {
-    background: white;
-    border-radius: 1rem;
-    overflow: hidden;
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-}
-.table thead th {
-    background: linear-gradient(135deg, #0d6efd, #6f42c1);
-    color: white;
-    font-weight: 600;
-    border: none;
-    padding: 1rem;
-}
-.table tbody td {
-    padding: 0.9rem 1rem;
-    vertical-align: middle;
-    border: none;
-}
-.table tbody tr {
-    background-color: white;
-}
-.table tbody tr:hover {
-    background-color: #f0f0ff;
-}
-.fila-clicable {
-    cursor: pointer;
-}
-.titulo-tabla {
-    color: black;
-}
-.contador {
-    color: black;
-    font-size: 1.1rem;
-    margin-bottom: 2rem;
-}
-</style>
+    <style>
+        body {
+            background: linear-gradient(135deg, #bcc7ff, #ddbeff);
+        }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0 titulo-tabla">
-        <i class="bi bi-file-earmark-text"></i> Modelo de Solicitudes
-    </h2>
-    <div>
-        <a href="{% url 'crear_solicitud' %}" class="btn btn-success fw-bold me-2">
-            <i class="bi bi-plus-circle"></i> Nueva Solicitud
-        </a>
-        <a href="{% url 'dashboard' %}" class="btn btn-danger fw-bold">
-            <i class="bi bi-arrow-left"></i> Volver al Inicio
-        </a>
+        .table-container {
+            background: white;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        }
+
+        .table thead th {
+            background: linear-gradient(135deg, #0d6efd, #6f42c1);
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 1rem;
+        }
+
+        .table tbody td {
+            padding: 0.9rem 1rem;
+            vertical-align: middle;
+            border: none;
+        }
+
+        .table tbody tr {
+            background-color: white;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f0f0ff;
+        }
+
+        .fila-clicable {
+            cursor: pointer;
+        }
+
+        .titulo-tabla {
+            color: black;
+        }
+
+        .contador {
+            color: black;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0 titulo-tabla">
+            <i class="bi bi-file-earmark-text"></i> Modelo de Solicitudes
+        </h2>
+        <div>
+            {% if user.departamento == 'admin' or user.departamento == 'transporte' %}
+                <a href="{% url 'crear_solicitud' %}" class="btn btn-success fw-bold me-2">
+                    <i class="bi bi-plus-circle"></i> Nueva Solicitud
+                </a>
+            {% endif %}
+            <a href="{% url 'dashboard' %}" class="btn btn-danger fw-bold">
+                <i class="bi bi-arrow-left"></i> Volver al Inicio
+            </a>
+        </div>
     </div>
-</div>
 
-<div class="table-container">
-    <div class="table-responsive">
-        <table class="table table-hover mb-0">
-            <thead>
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
                 <tr>
                     <th>Fecha / Hora</th>
                     <th>Total de Consumo</th>
@@ -66,15 +78,15 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
-            </thead>
-            <tbody>
+                </thead>
+                <tbody>
                 {% for solicitud in solicitudes %}
-                <tr class="fila-clicable" onclick="window.location.href='{% url 'ver_solicitud' solicitud.id %}'">
-                    <td>{{ solicitud.fecha_hora|date:"d/m/Y H:i" }}</td>
-                    <td>{{ solicitud.total_consumo }}</td>
-                    <td>{{ solicitud.total_venta }}</td>
-                    <td>{{ solicitud.total_general }}</td>
-                    <td>
+                    <tr class="fila-clicable" onclick="window.location.href='{% url 'ver_solicitud' solicitud.id %}'">
+                        <td>{{ solicitud.fecha_hora|date:"d/m/Y H:i" }}</td>
+                        <td>{{ solicitud.total_consumo }}</td>
+                        <td>{{ solicitud.total_venta }}</td>
+                        <td>{{ solicitud.total_general }}</td>
+                        <td>
                         <span class="badge
                             {% if solicitud.estado == 'borrador' %}bg-secondary
                             {% elif solicitud.estado == 'pendiente' %}bg-warning text-dark
@@ -83,103 +95,110 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                             {% endif %}">
                             {{ solicitud.get_estado_display }}
                         </span>
-                    </td>
-                    <td onclick="event.stopPropagation();">
-                        {% if solicitud.estado == 'borrador' or solicitud.estado == 'rechazada' %}
-                            <a href="{% url 'editar_solicitud' solicitud.id %}" class="btn btn-sm text-white" style="background-color: #0370d0;" title="Modificar">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <a href="#" class="btn btn-sm text-white" style="background-color: #0b3d7b;" title="Enviar" onclick="confirmarEnviar('{% url 'enviar_solicitud' solicitud.id %}'); return false;">
-                                <i class="bi bi-send"></i>
-                            </a>
-                            <a href="#" class="btn btn-danger btn-sm" title="Eliminar" onclick="confirmarEliminar('{% url 'eliminar_solicitud' solicitud.id %}'); return false;">
-                                <i class="bi bi-trash"></i>
-                            </a>
-                        {% endif %}
-                    </td>
-                </tr>
+                        </td>
+                        <td onclick="event.stopPropagation();">
+                            {% if user.departamento == 'admin' or user.departamento == 'transporte' %}
+                                {% if solicitud.estado == 'borrador' or solicitud.estado == 'rechazada' %}
+                                    <a href="{% url 'editar_solicitud' solicitud.id %}" class="btn btn-sm text-white"
+                                       style="background-color: #0370d0;" title="Modificar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-sm text-white" style="background-color: #0b3d7b;"
+                                       title="Enviar"
+                                       onclick="confirmarEnviar('{% url 'enviar_solicitud' solicitud.id %}'); return false;">
+                                        <i class="bi bi-send"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-danger btn-sm" title="Eliminar"
+                                       onclick="confirmarEliminar('{% url 'eliminar_solicitud' solicitud.id %}'); return false;">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="6" class="text-center text-muted py-5">
-                        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
-                        <p class="mt-3 fs-5">No se encontraron solicitudes.</p>
-                    </td>
-                </tr>
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-5">
+                            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                            <p class="mt-3 fs-5">No se encontraron solicitudes.</p>
+                        </td>
+                    </tr>
                 {% endfor %}
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
 
-<div class="mt-3 text-end contador">
-    <strong>Total de solicitudes: {{ solicitudes|length }}</strong>
-</div>
+    <div class="mt-3 text-end contador">
+        <strong>Total de solicitudes: {{ solicitudes|length }}</strong>
+    </div>
 
-<!-- Modal Confirmar Eliminación -->
-<div class="modal fade" id="confirmarEliminar" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-4 shadow-lg">
-            <div class="modal-header text-white" style="background: linear-gradient(135deg, #dc3545, #6f42c1);">
-                <h5 class="modal-title">
-                    <i class="bi bi-exclamation-triangle-fill"></i> Confirmar Eliminación
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center py-4">
-                <i class="bi bi-trash text-danger" style="font-size: 3rem;"></i>
-                <p class="mt-3 fs-5">¿Está seguro de eliminar esta solicitud?</p>
-                <small class="text-muted">Esta acción no se puede deshacer.</small>
-            </div>
-            <div class="modal-footer justify-content-center">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle"></i> Cancelar
-                </button>
-                <a href="#" id="confirmarEliminarBtn" class="btn btn-danger">
-                    <i class="bi bi-trash"></i> Eliminar
-                </a>
+    <!-- Modal Confirmar Eliminación -->
+    <div class="modal fade" id="confirmarEliminar" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, #dc3545, #6f42c1);">
+                    <h5 class="modal-title">
+                        <i class="bi bi-exclamation-triangle-fill"></i> Confirmar Eliminación
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <i class="bi bi-trash text-danger" style="font-size: 3rem;"></i>
+                    <p class="mt-3 fs-5">¿Está seguro de eliminar esta solicitud?</p>
+                    <small class="text-muted">Esta acción no se puede deshacer.</small>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <a href="#" id="confirmarEliminarBtn" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Eliminar
+                    </a>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Modal Confirmar Envío -->
-<div class="modal fade" id="confirmarEnviarModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 rounded-4 shadow-lg">
-            <div class="modal-header text-white" style="background: linear-gradient(135deg, #0d6efd, #6f42c1);">
-                <h5 class="modal-title">
-                    <i class="bi bi-send-fill"></i> Confirmar Envío
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center py-4">
-                <i class="bi bi-send-check text-primary" style="font-size: 3rem;"></i>
-                <p class="mt-3 fs-5">¿Está seguro de enviar esta solicitud?</p>
-                <small class="text-muted">Una vez enviada, no podrá modificarla ni eliminarla.</small>
-            </div>
-            <div class="modal-footer justify-content-center">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x-circle"></i> Cancelar
-                </button>
-                <a href="#" id="confirmarEnviarBtn" class="btn text-white" style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
-                    <i class="bi bi-send"></i> Enviar
-                </a>
+    <!-- Modal Confirmar Envío -->
+    <div class="modal fade" id="confirmarEnviarModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, #0d6efd, #6f42c1);">
+                    <h5 class="modal-title">
+                        <i class="bi bi-send-fill"></i> Confirmar Envío
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <i class="bi bi-send-check text-primary" style="font-size: 3rem;"></i>
+                    <p class="mt-3 fs-5">¿Está seguro de enviar esta solicitud?</p>
+                    <small class="text-muted">Una vez enviada, no podrá modificarla ni eliminarla.</small>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <a href="#" id="confirmarEnviarBtn" class="btn text-white"
+                       style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
+                        <i class="bi bi-send"></i> Enviar
+                    </a>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-function confirmarEliminar(url) {
-    document.getElementById('confirmarEliminarBtn').href = url;
-    var modal = new bootstrap.Modal(document.getElementById('confirmarEliminar'));
-    modal.show();
-}
+    <script>
+        function confirmarEliminar(url) {
+            document.getElementById('confirmarEliminarBtn').href = url;
+            var modal = new bootstrap.Modal(document.getElementById('confirmarEliminar'));
+            modal.show();
+        }
 
-function confirmarEnviar(url) {
-    document.getElementById('confirmarEnviarBtn').href = url;
-    var modal = new bootstrap.Modal(document.getElementById('confirmarEnviarModal'));
-    modal.show();
-}
-</script>
+        function confirmarEnviar(url) {
+            document.getElementById('confirmarEnviarBtn').href = url;
+            var modal = new bootstrap.Modal(document.getElementById('confirmarEnviarModal'));
+            modal.show();
+        }
+    </script>
 {% endblock %}

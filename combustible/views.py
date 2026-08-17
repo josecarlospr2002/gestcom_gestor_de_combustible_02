@@ -16,12 +16,18 @@ def dashboard(request):
 # Vistas para Catálogo de Cliente
 @login_required
 def lista_clientes(request):
+    if request.user.departamento not in ['admin', 'transporte', 'directivo', 'director']:
+        messages.error(request, 'No tiene permisos para ver el catálogo de clientes.')
+        return redirect('dashboard')
     clientes = CatalogoCliente.objects.all()
     return render(request, 'combustible/lista_clientes.html', {'clientes': clientes})
 
 
 @login_required
 def crear_cliente(request):
+    if request.user.departamento not in ['admin', 'transporte']:
+        messages.error(request, 'No tiene permisos para crear clientes.')
+        return redirect('lista_clientes')
     if request.method == 'POST':
         form = CatalogoClienteForm(request.POST)
         if form.is_valid():
@@ -38,6 +44,9 @@ def crear_cliente(request):
 
 @login_required
 def editar_cliente(request, pk):
+    if request.user.departamento not in ['admin', 'directivo']:
+        messages.error(request, 'No tiene permisos para modificar clientes.')
+        return redirect('lista_clientes')
     cliente = get_object_or_404(CatalogoCliente, pk=pk)
     if request.method == 'POST':
         form = CatalogoClienteForm(request.POST, instance=cliente)
@@ -56,12 +65,18 @@ def editar_cliente(request, pk):
 # Vistas para Transporte
 @login_required
 def lista_transporte(request):
+    if request.user.departamento not in ['admin', 'transporte']:
+        messages.error(request, 'No tiene permisos para ver el transporte.')
+        return redirect('dashboard')
     transportes = Transporte.objects.select_related('cliente').all()
     return render(request, 'combustible/lista_transporte.html', {'transportes': transportes})
 
 
 @login_required
 def crear_vehiculo(request):
+    if request.user.departamento not in ['admin', 'transporte']:
+        messages.error(request, 'No tiene permisos para crear vehículos.')
+        return redirect('lista_transporte')
     if request.method == 'POST':
         form = TransporteForm(request.POST)
         if form.is_valid():
@@ -78,6 +93,9 @@ def crear_vehiculo(request):
 
 @login_required
 def editar_vehiculo(request, pk):
+    if request.user.departamento not in ['admin', 'transporte']:
+        messages.error(request, 'No tiene permisos para modificar vehículos.')
+        return redirect('lista_transporte')
     vehiculo = get_object_or_404(Transporte, pk=pk)
     if request.method == 'POST':
         form = TransporteForm(request.POST, instance=vehiculo)
@@ -95,6 +113,9 @@ def editar_vehiculo(request, pk):
 
 @login_required
 def eliminar_vehiculo(request, pk):
+    if request.user.departamento not in ['admin', 'transporte']:
+        messages.error(request, 'No tiene permisos para eliminar vehículos.')
+        return redirect('lista_transporte')
     vehiculo = get_object_or_404(Transporte, pk=pk)
     vehiculo.delete()
     messages.success(request, 'Vehículo eliminado correctamente.')
@@ -103,6 +124,9 @@ def eliminar_vehiculo(request, pk):
 
 @login_required
 def ver_cliente(request, pk):
+    if request.user.departamento not in ['admin', 'transporte', 'directivo', 'director']:
+        messages.error(request, 'No tiene permisos para ver este cliente.')
+        return redirect('dashboard')
     cliente = get_object_or_404(CatalogoCliente, pk=pk)
     vehiculos = Transporte.objects.filter(cliente=cliente)
     return render(request, 'combustible/ver_cliente.html', {
@@ -114,12 +138,18 @@ def ver_cliente(request, pk):
 # Vistas para Modelo de Solicitud
 @login_required
 def lista_solicitudes(request):
+    if request.user.departamento not in ['admin', 'transporte', 'directivo', 'director']:
+        messages.error(request, 'No tiene permisos para ver las solicitudes.')
+        return redirect('dashboard')
     solicitudes = ModeloSolicitud.objects.all()
     return render(request, 'combustible/lista_solicitudes.html', {'solicitudes': solicitudes})
 
 
 @login_required
 def crear_solicitud(request):
+    if request.user.departamento not in ['admin', 'transporte']:
+        messages.error(request, 'No tiene permisos para crear solicitudes.')
+        return redirect('lista_solicitudes')
     clientes = CatalogoCliente.objects.prefetch_related('transportes').all()
 
     if request.method == 'POST':
@@ -226,7 +256,6 @@ def crear_solicitud(request):
             )
 
             # Guardar vehículos del cliente
-            # Los datos vienen en formato: transporte_id|actividad|cantidad
             vehiculos_data = request.POST.getlist(f'vehiculos_{cliente_id}')
             for vehiculo_data in vehiculos_data:
                 partes = vehiculo_data.split('|')
@@ -252,6 +281,9 @@ def crear_solicitud(request):
 
 @login_required
 def ver_solicitud(request, pk):
+    if request.user.departamento not in ['admin', 'transporte', 'directivo', 'director']:
+        messages.error(request, 'No tiene permisos para ver esta solicitud.')
+        return redirect('dashboard')
     solicitud = get_object_or_404(ModeloSolicitud, pk=pk)
     detalles = DetalleSolicitud.objects.filter(solicitud=solicitud).select_related('cliente')
 
@@ -272,6 +304,9 @@ def ver_solicitud(request, pk):
 
 @login_required
 def editar_solicitud(request, pk):
+    if request.user.departamento not in ['admin', 'transporte']:
+        messages.error(request, 'No tiene permisos para modificar solicitudes.')
+        return redirect('lista_solicitudes')
     solicitud = get_object_or_404(ModeloSolicitud, pk=pk)
     if solicitud.estado not in ['borrador', 'rechazada']:
         messages.error(request, 'Esta solicitud no se puede editar.')
@@ -448,6 +483,9 @@ def editar_solicitud(request, pk):
 
 @login_required
 def enviar_solicitud(request, pk):
+    if request.user.departamento not in ['admin', 'transporte']:
+        messages.error(request, 'No tiene permisos para enviar solicitudes.')
+        return redirect('lista_solicitudes')
     solicitud = get_object_or_404(ModeloSolicitud, pk=pk)
     if solicitud.estado in ['borrador', 'rechazada']:
         solicitud.estado = 'pendiente'
@@ -460,6 +498,9 @@ def enviar_solicitud(request, pk):
 
 @login_required
 def eliminar_solicitud(request, pk):
+    if request.user.departamento not in ['admin', 'transporte']:
+        messages.error(request, 'No tiene permisos para eliminar solicitudes.')
+        return redirect('lista_solicitudes')
     solicitud = get_object_or_404(ModeloSolicitud, pk=pk)
     if solicitud.estado not in ['borrador', 'rechazada']:
         messages.error(request, 'Esta solicitud no se puede eliminar.')
