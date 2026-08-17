@@ -23,4 +23,6 @@ urlpatterns = [
     path('solicitudes/editar/<int:pk>/', views.editar_solicitud, name='editar_solicitud'),
     path('solicitudes/enviar/<int:pk>/', views.enviar_solicitud, name='enviar_solicitud'),
     path('solicitudes/eliminar/<int:pk>/', views.eliminar_solicitud, name='eliminar_solicitud'),
+    path('solicitudes/aprobar/<int:pk>/', views.aprobar_solicitud, name='aprobar_solicitud'),
+    path('solicitudes/rechazar/<int:pk>/', views.rechazar_solicitud, name='rechazar_solicitud'),
 ]

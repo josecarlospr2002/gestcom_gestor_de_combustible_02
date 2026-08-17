@@ -508,3 +508,34 @@ def eliminar_solicitud(request, pk):
     solicitud.delete()
     messages.success(request, 'Solicitud eliminada correctamente.')
     return redirect('lista_solicitudes')
+
+
+@login_required
+def aprobar_solicitud(request, pk):
+    if request.user.departamento not in ['admin', 'director']:
+        messages.error(request, 'No tiene permisos para aprobar solicitudes.')
+        return redirect('lista_solicitudes')
+    solicitud = get_object_or_404(ModeloSolicitud, pk=pk)
+    if solicitud.estado != 'pendiente':
+        messages.error(request, 'Esta solicitud no se puede aprobar.')
+        return redirect('lista_solicitudes')
+    solicitud.estado = 'aprobada'
+    solicitud.save()
+    messages.success(request, f'Solicitud #{solicitud.id} aprobada correctamente.')
+    return redirect('lista_solicitudes')
+
+
+@login_required
+def rechazar_solicitud(request, pk):
+    if request.user.departamento not in ['admin', 'director']:
+        messages.error(request, 'No tiene permisos para rechazar solicitudes.')
+        return redirect('lista_solicitudes')
+    solicitud = get_object_or_404(ModeloSolicitud, pk=pk)
+    if solicitud.estado != 'pendiente':
+        messages.error(request, 'Esta solicitud no se puede rechazar.')
+        return redirect('lista_solicitudes')
+    solicitud.estado = 'rechazada'
+    solicitud.motivo_rechazo = request.GET.get('motivo', '')
+    solicitud.save()
+    messages.success(request, f'Solicitud #{solicitud.id} rechazada correctamente.')
+    return redirect('lista_solicitudes')

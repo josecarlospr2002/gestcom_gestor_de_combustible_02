@@ -114,6 +114,19 @@
                                     </a>
                                 {% endif %}
                             {% endif %}
+
+                            {% if user.departamento == 'admin' or user.departamento == 'director' %}
+                                {% if solicitud.estado == 'pendiente' %}
+                                    <a href="#" class="btn btn-success btn-sm" title="Aprobar"
+                                       onclick="confirmarAprobar('{% url 'aprobar_solicitud' solicitud.id %}'); return false;">
+                                        <i class="bi bi-check-circle"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-danger btn-sm" title="Rechazar"
+                                       onclick="abrirModalRechazar('{% url 'rechazar_solicitud' solicitud.id %}'); return false;">
+                                        <i class="bi bi-x-circle"></i>
+                                    </a>
+                                {% endif %}
+                            {% endif %}
                         </td>
                     </tr>
                 {% empty %}
@@ -188,6 +201,66 @@
         </div>
     </div>
 
+    <!-- Modal Confirmar Aprobación -->
+    <div class="modal fade" id="confirmarAprobarModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, #198754, #157347);">
+                    <h5 class="modal-title">
+                        <i class="bi bi-check-circle-fill"></i> Confirmar Aprobación
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+                    <p class="mt-3 fs-5">¿Está seguro de aprobar esta solicitud?</p>
+                    <small class="text-muted">Una vez aprobada, no podrá modificarse.</small>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <a href="#" id="confirmarAprobarBtn" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Aprobar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Rechazar -->
+    <div class="modal fade" id="modalRechazar" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, #dc3545, #6f42c1);">
+                    <h5 class="modal-title">
+                        <i class="bi bi-x-circle-fill"></i> Confirmar Rechazo
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <i class="bi bi-x-circle text-danger" style="font-size: 3rem;"></i>
+                    <p class="mt-3 fs-5">¿Está seguro de rechazar esta solicitud?</p>
+                    <small class="text-muted">Esta acción no se puede deshacer.</small>
+                    <div class="mt-3 text-start">
+                        <label for="motivoRechazo" class="form-label fw-bold">Motivo del rechazo <span
+                                class="text-muted fw-normal">(opcional)</span></label>
+                        <textarea id="motivoRechazo" class="form-control" rows="3"
+                                  placeholder="Escriba el motivo del rechazo..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </button>
+                    <a href="#" id="confirmarRechazarBtn" class="btn btn-danger">
+                        <i class="bi bi-x-circle"></i> Rechazar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         function confirmarEliminar(url) {
             document.getElementById('confirmarEliminarBtn').href = url;
@@ -200,5 +273,27 @@
             var modal = new bootstrap.Modal(document.getElementById('confirmarEnviarModal'));
             modal.show();
         }
+
+        function confirmarAprobar(url) {
+            document.getElementById('confirmarAprobarBtn').href = url;
+            var modal = new bootstrap.Modal(document.getElementById('confirmarAprobarModal'));
+            modal.show();
+        }
+
+        function abrirModalRechazar(urlBase) {
+            document.getElementById('confirmarRechazarBtn').dataset.urlBase = urlBase;
+            document.getElementById('motivoRechazo').value = '';
+            var modal = new bootstrap.Modal(document.getElementById('modalRechazar'));
+            modal.show();
+        }
+
+        document.getElementById('confirmarRechazarBtn').addEventListener('click', function (e) {
+            var motivo = document.getElementById('motivoRechazo').value.trim();
+            var url = this.dataset.urlBase;
+            if (motivo) {
+                url += '?motivo=' + encodeURIComponent(motivo);
+            }
+            window.location.href = url;
+        });
     </script>
 {% endblock %}
