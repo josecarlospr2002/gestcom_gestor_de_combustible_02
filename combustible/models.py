@@ -93,6 +93,7 @@ class DetalleSolicitud(models.Model):
     def __str__(self):
         return f"{self.cliente.cliente} - {self.solicitud}"
 
+
 class DetalleSolicitudVehiculo(models.Model):
     detalle_solicitud = models.ForeignKey(DetalleSolicitud, on_delete=models.CASCADE, related_name='vehiculos')
     transporte = models.ForeignKey(Transporte, on_delete=models.CASCADE, verbose_name='Transporte')
@@ -105,3 +106,55 @@ class DetalleSolicitudVehiculo(models.Model):
 
     def __str__(self):
         return f"{self.transporte.chapa} - {self.cant_abastecer}"
+
+
+class AlmacenProduccion(models.Model):
+    cantidad_actual = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Cantidad Actual de Combustible'
+    )
+
+    class Meta:
+        verbose_name = 'Almacén de Producción'
+        verbose_name_plural = 'Almacén de Producción'
+
+    def __str__(self):
+        return f"Almacén de Producción - {self.cantidad_actual} L"
+
+
+class SuministroCombustible(models.Model):
+    ESTADOS_SUMINISTRO = [
+        ('pendiente', 'Pendiente a Validar'),
+        ('validado', 'Validado'),
+    ]
+
+    fecha_hora = models.DateTimeField(verbose_name='Fecha y Hora')
+    cantidad = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        verbose_name='Cantidad a Insertar'
+    )
+    descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción / Nota')
+    cantidad_antes = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Cantidad Antes de Insertar'
+    )
+    cantidad_despues = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Cantidad Después de Insertar'
+    )
+    estado = models.CharField(max_length=20, choices=ESTADOS_SUMINISTRO, default='pendiente', verbose_name='Estado')
+
+    class Meta:
+        verbose_name = 'Suministro de Combustible'
+        verbose_name_plural = 'Suministros de Combustible'
+        ordering = ['-fecha_hora']
+
+    def __str__(self):
+        return f"Suministro #{self.id} - {self.fecha_hora.strftime('%d/%m/%Y %H:%M')}"

@@ -1,6 +1,6 @@
 from django import forms
 from django.core.validators import MinValueValidator
-from .models import CatalogoCliente, Transporte, ModeloSolicitud
+from .models import CatalogoCliente, Transporte, ModeloSolicitud, SuministroCombustible
 
 
 class CatalogoClienteForm(forms.ModelForm):
@@ -106,3 +106,47 @@ class ModeloSolicitudForm(forms.ModelForm):
             if fecha_hora > timezone.now():
                 raise forms.ValidationError('No se puede registrar una solicitud con fecha futura.')
         return fecha_hora
+
+
+class SuministroCombustibleForm(forms.ModelForm):
+    class Meta:
+        model = SuministroCombustible
+        fields = ['fecha_hora', 'cantidad', 'descripcion']
+        widgets = {
+            'fecha_hora': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local',
+            }),
+            'cantidad': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0.01',
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Opcional: descripción o nota',
+                'rows': '3',
+            }),
+        }
+        labels = {
+            'fecha_hora': 'Fecha y Hora',
+            'cantidad': 'Cantidad a Insertar',
+            'descripcion': 'Descripción / Nota',
+        }
+
+    def clean_fecha_hora(self):
+        fecha_hora = self.cleaned_data.get('fecha_hora')
+        if fecha_hora:
+            from django.utils import timezone
+            if timezone.is_naive(fecha_hora):
+                fecha_hora = timezone.make_aware(fecha_hora)
+            if fecha_hora > timezone.now():
+                raise forms.ValidationError('No se puede registrar un suministro con fecha futura.')
+        return fecha_hora
+
+    def clean_cantidad(self):
+        cantidad = self.cleaned_data.get('cantidad')
+        if cantidad is not None and cantidad <= 0:
+            raise forms.ValidationError('La cantidad debe ser mayor que 0.')
+        return cantidad

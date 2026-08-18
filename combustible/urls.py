@@ -25,4 +25,11 @@ urlpatterns = [
     path('solicitudes/eliminar/<int:pk>/', views.eliminar_solicitud, name='eliminar_solicitud'),
     path('solicitudes/aprobar/<int:pk>/', views.aprobar_solicitud, name='aprobar_solicitud'),
     path('solicitudes/rechazar/<int:pk>/', views.rechazar_solicitud, name='rechazar_solicitud'),
+
+    # URLs de Suministro de Combustible
+    path('suministros/', views.lista_suministros, name='lista_suministros'),
+    path('suministros/crear/', views.crear_suministro, name='crear_suministro'),
+    path('suministros/editar/<int:pk>/', views.editar_suministro, name='editar_suministro'),
+    path('suministros/validar/<int:pk>/', views.validar_suministro, name='validar_suministro'),
+    path('suministros/eliminar/<int:pk>/', views.eliminar_suministro, name='eliminar_suministro'),
 ]

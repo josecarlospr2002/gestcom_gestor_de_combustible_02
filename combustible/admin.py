@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud, DetalleSolicitudVehiculo
+from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud, DetalleSolicitudVehiculo, \
+    AlmacenProduccion, SuministroCombustible
 
 
 @admin.register(CatalogoCliente)
@@ -32,3 +33,14 @@ class DetalleSolicitudAdmin(admin.ModelAdmin):
 class DetalleSolicitudVehiculoAdmin(admin.ModelAdmin):
     list_display = ('detalle_solicitud', 'transporte', 'actividad', 'cant_abastecer')
     search_fields = ('transporte__chapa', 'actividad')
+
+
+@admin.register(AlmacenProduccion)
+class AlmacenProduccionAdmin(admin.ModelAdmin):
+    list_display = ('cantidad_actual',)
+
+
+@admin.register(SuministroCombustible)
+class SuministroCombustibleAdmin(admin.ModelAdmin):
+    list_display = ('id', 'fecha_hora', 'cantidad', 'cantidad_antes', 'cantidad_despues', 'estado')
+    list_filter = ('estado', 'fecha_hora')
