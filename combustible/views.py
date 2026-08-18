@@ -701,11 +701,15 @@ def confirmar_transferencia(request, pk):
         messages.error(request, 'No hay suficiente combustible en el Almacén de Producción.')
         return redirect('lista_almacen_produccion')
 
+    # Guardar saldo inicial ANTES de restar
+    solicitud.saldo_inicial = almacen.cantidad_actual
+
     # Restar del almacén
     almacen.cantidad_actual -= solicitud.total_general
     almacen.save()
 
-    # Marcar como transferida
+    # Guardar saldo final DESPUÉS de restar
+    solicitud.saldo_final = almacen.cantidad_actual
     solicitud.transferida = True
     solicitud.save()
 

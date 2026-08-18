@@ -71,6 +71,8 @@ class ModeloSolicitud(models.Model):
     total_venta = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Total de Venta')
     total_general = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Total General')
     transferida = models.BooleanField(default=False, verbose_name='Transferida a Aseguramiento')
+    saldo_inicial = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name='Saldo Inicial')
+    saldo_final = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name='Saldo Final')
 
     class Meta:
         verbose_name = 'Modelo de Solicitud'
