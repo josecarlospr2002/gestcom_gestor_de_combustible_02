@@ -661,3 +661,53 @@ def eliminar_suministro(request, pk):
     suministro.delete()
     messages.success(request, 'Suministro eliminado correctamente.')
     return redirect('lista_suministros')
+
+
+@login_required
+def lista_almacen_produccion(request):
+    if request.user.departamento not in ['admin', 'petroleo', 'director', 'directivo']:
+        messages.error(request, 'No tiene permisos para ver el Almacén de Producción.')
+        return redirect('dashboard')
+
+    # Solicitudes aprobadas (pendientes de transferencia y ya transferidas)
+    solicitudes_aprobadas = ModeloSolicitud.objects.filter(estado='aprobada')
+    almacen = AlmacenProduccion.objects.first()
+    if not almacen:
+        almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
+
+    return render(request, 'combustible/lista_almacen_produccion.html', {
+        'solicitudes_aprobadas': solicitudes_aprobadas,
+        'almacen': almacen,
+    })
+
+
+@login_required
+def confirmar_transferencia(request, pk):
+    if request.user.departamento not in ['admin', 'petroleo']:
+        messages.error(request, 'No tiene permisos para realizar transferencias.')
+        return redirect('lista_almacen_produccion')
+
+    solicitud = get_object_or_404(ModeloSolicitud, pk=pk)
+    if solicitud.estado != 'aprobada' or solicitud.transferida:
+        messages.error(request, 'Esta solicitud no se puede transferir.')
+        return redirect('lista_almacen_produccion')
+
+    almacen = AlmacenProduccion.objects.first()
+    if not almacen:
+        almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
+
+    # Verificar que hay suficiente combustible
+    if almacen.cantidad_actual < solicitud.total_general:
+        messages.error(request, 'No hay suficiente combustible en el Almacén de Producción.')
+        return redirect('lista_almacen_produccion')
+
+    # Restar del almacén
+    almacen.cantidad_actual -= solicitud.total_general
+    almacen.save()
+
+    # Marcar como transferida
+    solicitud.transferida = True
+    solicitud.save()
+
+    messages.success(request, f'Transferencia realizada correctamente. Se transfirieron {solicitud.total_general} L.')
+    return redirect('lista_almacen_produccion')

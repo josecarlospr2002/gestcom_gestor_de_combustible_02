@@ -32,4 +32,8 @@ urlpatterns = [
     path('suministros/editar/<int:pk>/', views.editar_suministro, name='editar_suministro'),
     path('suministros/validar/<int:pk>/', views.validar_suministro, name='validar_suministro'),
     path('suministros/eliminar/<int:pk>/', views.eliminar_suministro, name='eliminar_suministro'),
+
+    # URLs de Almacén de Producción
+    path('almacen-produccion/', views.lista_almacen_produccion, name='lista_almacen_produccion'),
+    path('almacen-produccion/transferir/<int:pk>/', views.confirmar_transferencia, name='confirmar_transferencia'),
 ]

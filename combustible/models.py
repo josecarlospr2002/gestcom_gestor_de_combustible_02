@@ -70,6 +70,7 @@ class ModeloSolicitud(models.Model):
     total_consumo = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Total de Consumo')
     total_venta = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Total de Venta')
     total_general = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Total General')
+    transferida = models.BooleanField(default=False, verbose_name='Transferida a Aseguramiento')
 
     class Meta:
         verbose_name = 'Modelo de Solicitud'

@@ -19,8 +19,8 @@ class TransporteAdmin(admin.ModelAdmin):
 
 @admin.register(ModeloSolicitud)
 class ModeloSolicitudAdmin(admin.ModelAdmin):
-    list_display = ('id', 'fecha_hora', 'estado', 'total_consumo', 'total_venta', 'total_general')
-    list_filter = ('estado', 'fecha_hora')
+    list_display = ('id', 'fecha_hora', 'estado', 'transferida', 'total_consumo', 'total_venta', 'total_general')
+    list_filter = ('estado', 'transferida', 'fecha_hora')
 
 
 @admin.register(DetalleSolicitud)

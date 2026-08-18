@@ -131,5 +131,13 @@
                 </a>
             </div>
         {% endif %}
+        {% if user.departamento == 'admin' or user.departamento == 'petroleo' or user.departamento == 'director' or user.departamento == 'directivo' %}
+            <div class="col-md-6 col-lg-4">
+                <a href="{% url 'lista_almacen_produccion' %}" class="btn btn-acceso text-white w-100"
+                   style="background: linear-gradient(135deg, #0d6efd, #6f42c1); border: none;">
+                    <i class="bi bi-box-seam-fill"></i> Almacén de Producción
+                </a>
+            </div>
+        {% endif %}
     </div>
 {% endblock %}
