@@ -11,7 +11,11 @@ from .forms import CatalogoClienteForm, TransporteForm, SuministroCombustibleFor
 
 @login_required
 def dashboard(request):
-    return render(request, 'combustible/dashboard.html')
+    almacen = AlmacenProduccion.objects.first()
+    cantidad_almacen = almacen.cantidad_actual if almacen else 0
+    return render(request, 'combustible/dashboard.html', {
+        'cantidad_almacen': cantidad_almacen,
+    })
 
 
 # Vistas para Catálogo de Cliente
@@ -547,13 +551,18 @@ def lista_suministros(request):
     if request.user.departamento not in ['admin', 'petroleo']:
         messages.error(request, 'No tiene permisos para ver los suministros.')
         return redirect('dashboard')
-    suministros = SuministroCombustible.objects.all()
+    suministros = SuministroCombustible.objects.all().order_by('-fecha_hora')
     almacen = AlmacenProduccion.objects.first()
     if not almacen:
         almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
+
+    # Verificar si hay acciones disponibles (algún suministro pendiente)
+    hay_acciones = suministros.filter(estado='pendiente').exists()
+
     return render(request, 'combustible/lista_suministros.html', {
         'suministros': suministros,
         'almacen': almacen,
+        'hay_acciones': hay_acciones,
     })
 
 

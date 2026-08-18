@@ -63,11 +63,11 @@
         <div class="col-md-4">
             <div class="card card-dashboard border-primary">
                 <div class="card-header bg-primary text-white">
-                    <i class="bi bi-fuel-pump"></i> Módulo 1
+                    <i class="bi bi-fuel-pump"></i> Almacén de Producción
                 </div>
                 <div class="card-body text-center">
-                    <h3 class="card-title text-primary">0</h3>
-                    <p class="card-text text-muted mb-0">Registros</p>
+                    <h3 class="card-title text-primary">{{ cantidad_almacen|default:"0" }} L</h3>
+                    <p class="card-text text-muted mb-0">Combustible disponible</p>
                 </div>
             </div>
         </div>
@@ -122,6 +122,7 @@
                 </a>
             </div>
         {% endif %}
+
         {% if user.departamento == 'admin' or user.departamento == 'petroleo' %}
             <div class="col-md-6 col-lg-4">
                 <a href="{% url 'lista_suministros' %}" class="btn btn-acceso text-white w-100"
