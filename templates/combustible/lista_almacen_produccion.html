@@ -63,7 +63,7 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
             </thead>
             <tbody>
                 {% for solicitud in solicitudes_aprobadas %}
-                    {% if user.departamento == 'admin' or user.departamento == 'petroleo' %}
+                    {% if puede_transferir %}
                         {% if not solicitud.transferida %}
                             <tr class="fila-clicable" onclick="abrirModalTransferencia('{{ solicitud.id }}', '{{ solicitud.total_general }}', '{{ almacen.cantidad_actual }}')">
                         {% else %}
@@ -118,6 +118,7 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
 </div>
 
 <!-- Modal de Transferencia -->
+{% if puede_transferir %}
 <div class="modal fade" id="modalTransferencia" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow-lg">
@@ -166,4 +167,5 @@ function abrirModalTransferencia(solicitudId, totalGeneral, cantidadActual) {
     modal.show();
 }
 </script>
+{% endif %}
 {% endblock %}

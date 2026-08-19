@@ -25,7 +25,11 @@ def lista_clientes(request):
         messages.error(request, 'No tiene permisos para ver el catálogo de clientes.')
         return redirect('dashboard')
     clientes = CatalogoCliente.objects.all()
-    return render(request, 'combustible/lista_clientes.html', {'clientes': clientes})
+    puede_editar = request.user.departamento in ['admin', 'directivo']
+    return render(request, 'combustible/lista_clientes.html', {
+        'clientes': clientes,
+        'puede_editar': puede_editar,
+    })
 
 
 @login_required
@@ -74,7 +78,11 @@ def lista_transporte(request):
         messages.error(request, 'No tiene permisos para ver el transporte.')
         return redirect('dashboard')
     transportes = Transporte.objects.select_related('cliente').all()
-    return render(request, 'combustible/lista_transporte.html', {'transportes': transportes})
+    puede_editar = request.user.departamento in ['admin', 'transporte']
+    return render(request, 'combustible/lista_transporte.html', {
+        'transportes': transportes,
+        'puede_editar': puede_editar,
+    })
 
 
 @login_required
@@ -147,7 +155,24 @@ def lista_solicitudes(request):
         messages.error(request, 'No tiene permisos para ver las solicitudes.')
         return redirect('dashboard')
     solicitudes = ModeloSolicitud.objects.all()
-    return render(request, 'combustible/lista_solicitudes.html', {'solicitudes': solicitudes})
+    puede_editar = request.user.departamento in ['admin', 'transporte']
+    puede_aprobar = request.user.departamento in ['admin', 'director']
+
+    # Verificar si hay al menos una solicitud con acciones disponibles para este usuario
+    hay_acciones = False
+
+    if puede_editar:
+        hay_acciones = solicitudes.filter(estado__in=['borrador', 'rechazada']).exists()
+
+    if not hay_acciones and puede_aprobar:
+        hay_acciones = solicitudes.filter(estado='pendiente').exists()
+
+    return render(request, 'combustible/lista_solicitudes.html', {
+        'solicitudes': solicitudes,
+        'puede_editar': puede_editar,
+        'puede_aprobar': puede_aprobar,
+        'hay_acciones': hay_acciones,
+    })
 
 
 @login_required
@@ -557,12 +582,14 @@ def lista_suministros(request):
         almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
 
     # Verificar si hay acciones disponibles (algún suministro pendiente)
-    hay_acciones = suministros.filter(estado='pendiente').exists()
+    puede_editar = request.user.departamento in ['admin', 'petroleo']
+    hay_acciones = puede_editar and suministros.filter(estado='pendiente').exists()
 
     return render(request, 'combustible/lista_suministros.html', {
         'suministros': suministros,
         'almacen': almacen,
         'hay_acciones': hay_acciones,
+        'puede_editar': puede_editar,
     })
 
 
@@ -615,8 +642,6 @@ def editar_suministro(request, pk):
             messages.error(request, 'Por favor, corrija los errores señalados.')
     else:
         form = SuministroCombustibleForm(instance=suministro)
-        # Asegurarse de que la fecha se pase correctamente al template
-        print(f"Fecha inicial del form: {form.fields['fecha_hora'].initial}")  # Para debug
 
     return render(request, 'combustible/editar_suministro.html', {'form': form, 'suministro': suministro})
 
@@ -689,9 +714,12 @@ def lista_almacen_produccion(request):
     if not almacen:
         almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
 
+    puede_transferir = request.user.departamento in ['admin', 'petroleo']
+
     return render(request, 'combustible/lista_almacen_produccion.html', {
         'solicitudes_aprobadas': solicitudes_aprobadas,
         'almacen': almacen,
+        'puede_transferir': puede_transferir,
     })
 
 
@@ -715,14 +743,14 @@ def confirmar_transferencia(request, pk):
         messages.error(request, 'No hay suficiente combustible en el Almacén de Producción.')
         return redirect('lista_almacen_produccion')
 
-    # Guardar saldo inicial ANTES de restar
+    # Guardar saldo inicial antes de restar
     solicitud.saldo_inicial = almacen.cantidad_actual
 
     # Restar del almacén
     almacen.cantidad_actual -= solicitud.total_general
     almacen.save()
 
-    # Guardar saldo final DESPUÉS de restar
+    # Guardar saldo final desués de restar
     solicitud.saldo_final = almacen.cantidad_actual
     solicitud.transferida = True
     solicitud.save()

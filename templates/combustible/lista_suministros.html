@@ -94,20 +94,18 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                         </td>
                         {% if hay_acciones %}
                         <td onclick="event.stopPropagation();">
-                            {% if user.departamento == 'admin' or user.departamento == 'petroleo' %}
-                                {% if suministro.estado == 'pendiente' %}
-                                    <a href="{% url 'editar_suministro' suministro.id %}" class="btn btn-primary btn-sm" title="Modificar">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <a href="#" class="btn btn-success btn-sm" title="Validar"
-                                       onclick="confirmarValidar('{% url 'validar_suministro' suministro.id %}'); return false;">
-                                        <i class="bi bi-check-circle"></i>
-                                    </a>
-                                    <a href="#" class="btn btn-danger btn-sm" title="Eliminar"
-                                       onclick="confirmarEliminar('{% url 'eliminar_suministro' suministro.id %}'); return false;">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
-                                {% endif %}
+                            {% if suministro.estado == 'pendiente' %}
+                                <a href="{% url 'editar_suministro' suministro.id %}" class="btn btn-primary btn-sm" title="Modificar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="#" class="btn btn-success btn-sm" title="Validar"
+                                   onclick="confirmarValidar('{% url 'validar_suministro' suministro.id %}'); return false;">
+                                    <i class="bi bi-check-circle"></i>
+                                </a>
+                                <a href="#" class="btn btn-danger btn-sm" title="Eliminar"
+                                   onclick="confirmarEliminar('{% url 'eliminar_suministro' suministro.id %}'); return false;">
+                                    <i class="bi bi-trash"></i>
+                                </a>
                             {% endif %}
                         </td>
                         {% endif %}

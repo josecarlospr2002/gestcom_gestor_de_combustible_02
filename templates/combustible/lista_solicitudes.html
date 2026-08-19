@@ -76,7 +76,9 @@
                     <th>Total de Venta</th>
                     <th>Total General</th>
                     <th>Estado</th>
+                    {% if hay_acciones %}
                     <th>Acciones</th>
+                    {% endif %}
                 </tr>
                 </thead>
                 <tbody>
@@ -96,8 +98,9 @@
                             {{ solicitud.get_estado_display }}
                         </span>
                         </td>
+                        {% if hay_acciones %}
                         <td onclick="event.stopPropagation();">
-                            {% if user.departamento == 'admin' or user.departamento == 'transporte' %}
+                            {% if puede_editar %}
                                 {% if solicitud.estado == 'borrador' or solicitud.estado == 'rechazada' %}
                                     <a href="{% url 'editar_solicitud' solicitud.id %}" class="btn btn-sm text-white"
                                        style="background-color: #0370d0;" title="Modificar">
@@ -115,7 +118,7 @@
                                 {% endif %}
                             {% endif %}
 
-                            {% if user.departamento == 'admin' or user.departamento == 'director' %}
+                            {% if puede_aprobar %}
                                 {% if solicitud.estado == 'pendiente' %}
                                     <a href="#" class="btn btn-success btn-sm" title="Aprobar"
                                        onclick="confirmarAprobar('{% url 'aprobar_solicitud' solicitud.id %}'); return false;">
@@ -128,10 +131,11 @@
                                 {% endif %}
                             {% endif %}
                         </td>
+                        {% endif %}
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-5">
+                        <td colspan="{% if hay_acciones %}6{% else %}5{% endif %}" class="text-center text-muted py-5">
                             <i class="bi bi-inbox" style="font-size: 3rem;"></i>
                             <p class="mt-3 fs-5">No se encontraron solicitudes.</p>
                         </td>

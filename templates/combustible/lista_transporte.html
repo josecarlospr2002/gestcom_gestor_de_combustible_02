@@ -71,7 +71,9 @@
                     <th>Tipo de Vehículo</th>
                     <th>Chapa</th>
                     <th>I/C</th>
+                    {% if puede_editar %}
                     <th>Acciones</th>
+                    {% endif %}
                 </tr>
                 </thead>
                 <tbody>
@@ -81,22 +83,22 @@
                         <td>{{ vehiculo.tipo_vehiculo }}</td>
                         <td>{{ vehiculo.chapa }}</td>
                         <td>{{ vehiculo.ic }}</td>
+                        {% if puede_editar %}
                         <td>
-                            {% if user.departamento == 'admin' or user.departamento == 'transporte' %}
-                                <a href="{% url 'editar_vehiculo' vehiculo.id %}" class="btn btn-primary btn-sm"
-                                   title="Modificar">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <a href="#" class="btn btn-danger btn-sm" title="Eliminar"
-                                   onclick="confirmarEliminar('{% url 'eliminar_vehiculo' vehiculo.id %}'); return false;">
-                                    <i class="bi bi-trash"></i>
-                                </a>
-                            {% endif %}
+                            <a href="{% url 'editar_vehiculo' vehiculo.id %}" class="btn btn-primary btn-sm"
+                               title="Modificar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="#" class="btn btn-danger btn-sm" title="Eliminar"
+                               onclick="confirmarEliminar('{% url 'eliminar_vehiculo' vehiculo.id %}'); return false;">
+                                <i class="bi bi-trash"></i>
+                            </a>
                         </td>
+                        {% endif %}
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-5">
+                        <td colspan="{% if puede_editar %}5{% else %}4{% endif %}" class="text-center text-muted py-5">
                             <i class="bi bi-inbox" style="font-size: 3rem;"></i>
                             <p class="mt-3 fs-5">No se encontraron vehículos.</p>
                         </td>

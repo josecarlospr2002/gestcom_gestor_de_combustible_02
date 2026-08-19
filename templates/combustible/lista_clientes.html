@@ -74,7 +74,9 @@
                     <th>Cliente</th>
                     <th>Clasificación</th>
                     <th>No. Contrato</th>
+                    {% if puede_editar %}
                     <th>Acciones</th>
+                    {% endif %}
                 </tr>
                 </thead>
                 <tbody>
@@ -91,18 +93,18 @@
                                 <span class="text-muted">-</span>
                             {% endif %}
                         </td>
+                        {% if puede_editar %}
                         <td onclick="event.stopPropagation();">
-                            {% if user.departamento == 'admin' or user.departamento == 'directivo' %}
-                                <a href="{% url 'editar_cliente' cliente.id %}" class="btn btn-primary btn-sm"
-                                   title="Modificar">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                            {% endif %}
+                            <a href="{% url 'editar_cliente' cliente.id %}" class="btn btn-primary btn-sm"
+                               title="Modificar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
                         </td>
+                        {% endif %}
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="4" class="text-center text-muted py-5">
+                        <td colspan="{% if puede_editar %}4{% else %}3{% endif %}" class="text-center text-muted py-5">
                             <i class="bi bi-inbox" style="font-size: 3rem;"></i>
                             <p class="mt-3 fs-5">No se encontraron clientes.</p>
                         </td>
