@@ -46,7 +46,7 @@
         {% if user.is_authenticated %}
             <div>
         <span class="text-white me-3">
-            <i class="bi bi-person-circle"></i> {{ user.get_full_name }} - {{ user.get_departamento_display }}
+            <i class="bi bi-person-circle"></i> {{ user.get_full_name }}
         </span>
                 <a href="#" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#confirmarLogoutModal">
                     <i class="bi bi-box-arrow-right"></i> Cerrar Sesión

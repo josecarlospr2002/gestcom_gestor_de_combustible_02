@@ -27,6 +27,9 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
 .table tbody tr:hover {
     background-color: #f0f0ff;
 }
+.fila-clicable {
+    cursor: pointer;
+}
 .titulo-tabla {
     color: black;
 }
@@ -69,40 +72,49 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
             </thead>
             <tbody>
                 {% for suministro in suministros %}
-                <tr>
-                    <td>{{ suministro.fecha_hora|date:"d/m/Y H:i" }}</td>
-                    <td>{{ suministro.cantidad }}</td>
-                    <td>{{ suministro.cantidad_antes }}</td>
-                    <td>
-                        {% if suministro.estado == 'validado' %}
-                            {{ suministro.cantidad_despues }}
-                        {% else %}
-                            <span class="text-muted">-</span>
-                        {% endif %}
-                    </td>
-                    {% if hay_acciones %}
-                    <td>
-                        {% if user.departamento == 'admin' or user.departamento == 'petroleo' %}
-                            {% if suministro.estado == 'pendiente' %}
-                                <a href="{% url 'editar_suministro' suministro.id %}" class="btn btn-primary btn-sm" title="Modificar">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <a href="#" class="btn btn-success btn-sm" title="Validar"
-                                   onclick="confirmarValidar('{% url 'validar_suministro' suministro.id %}'); return false;">
-                                    <i class="bi bi-check-circle"></i>
-                                </a>
-                                <a href="#" class="btn btn-danger btn-sm" title="Eliminar"
-                                   onclick="confirmarEliminar('{% url 'eliminar_suministro' suministro.id %}'); return false;">
-                                    <i class="bi bi-trash"></i>
-                                </a>
-                            {% endif %}
-                        {% endif %}
-                    </td>
+                    {% if suministro.descripcion %}
+                    <tr class="fila-clicable" onclick="window.location.href='{% url 'ver_suministro' suministro.id %}'">
+                    {% else %}
+                    <tr>
                     {% endif %}
-                </tr>
+                        <td>
+                            {{ suministro.fecha_hora|date:"d/m/Y H:i" }}
+                            {% if suministro.descripcion %}
+                                <i class="bi bi-file-text text-primary ms-1" title="Tiene descripción"></i>
+                            {% endif %}
+                        </td>
+                        <td>{{ suministro.cantidad }}</td>
+                        <td>{{ suministro.cantidad_antes }}</td>
+                        <td>
+                            {% if suministro.estado == 'validado' %}
+                                {{ suministro.cantidad_despues }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        {% if hay_acciones %}
+                        <td onclick="event.stopPropagation();">
+                            {% if user.departamento == 'admin' or user.departamento == 'petroleo' %}
+                                {% if suministro.estado == 'pendiente' %}
+                                    <a href="{% url 'editar_suministro' suministro.id %}" class="btn btn-primary btn-sm" title="Modificar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-success btn-sm" title="Validar"
+                                       onclick="confirmarValidar('{% url 'validar_suministro' suministro.id %}'); return false;">
+                                        <i class="bi bi-check-circle"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-danger btn-sm" title="Eliminar"
+                                       onclick="confirmarEliminar('{% url 'eliminar_suministro' suministro.id %}'); return false;">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="4" class="text-center text-muted py-5">
+                    <td colspan="{% if hay_acciones %}5{% else %}4{% endif %}" class="text-center text-muted py-5">
                         <i class="bi bi-inbox" style="font-size: 3rem;"></i>
                         <p class="mt-3 fs-5">No se encontraron suministros.</p>
                     </td>

@@ -615,6 +615,8 @@ def editar_suministro(request, pk):
             messages.error(request, 'Por favor, corrija los errores señalados.')
     else:
         form = SuministroCombustibleForm(instance=suministro)
+        # Asegurarse de que la fecha se pase correctamente al template
+        print(f"Fecha inicial del form: {form.fields['fecha_hora'].initial}")  # Para debug
 
     return render(request, 'combustible/editar_suministro.html', {'form': form, 'suministro': suministro})
 
@@ -645,6 +647,18 @@ def validar_suministro(request, pk):
 
     messages.success(request, 'Suministro validado correctamente. Combustible agregado al almacén.')
     return redirect('lista_suministros')
+
+
+@login_required
+def ver_suministro(request, pk):
+    if request.user.departamento not in ['admin', 'petroleo']:
+        messages.error(request, 'No tiene permisos para ver este suministro.')
+        return redirect('lista_suministros')
+
+    suministro = get_object_or_404(SuministroCombustible, pk=pk)
+    return render(request, 'combustible/ver_suministro.html', {
+        'suministro': suministro,
+    })
 
 
 @login_required
