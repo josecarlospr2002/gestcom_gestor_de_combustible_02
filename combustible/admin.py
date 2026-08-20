@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud, DetalleSolicitudVehiculo, \
-    AlmacenProduccion, SuministroCombustible
+    AlmacenProduccion, AlmacenAseguramiento, TransferenciaAlmacen, SuministroCombustible
 
 
 @admin.register(CatalogoCliente)
@@ -19,8 +19,8 @@ class TransporteAdmin(admin.ModelAdmin):
 
 @admin.register(ModeloSolicitud)
 class ModeloSolicitudAdmin(admin.ModelAdmin):
-    list_display = ('id', 'fecha_hora', 'estado', 'transferida', 'total_consumo', 'total_venta', 'total_general')
-    list_filter = ('estado', 'transferida', 'fecha_hora')
+    list_display = ('id', 'fecha_hora', 'estado', 'total_consumo', 'total_venta', 'total_general')
+    list_filter = ('estado', 'fecha_hora')
 
 
 @admin.register(DetalleSolicitud)
@@ -38,6 +38,18 @@ class DetalleSolicitudVehiculoAdmin(admin.ModelAdmin):
 @admin.register(AlmacenProduccion)
 class AlmacenProduccionAdmin(admin.ModelAdmin):
     list_display = ('cantidad_actual',)
+
+
+@admin.register(AlmacenAseguramiento)
+class AlmacenAseguramientoAdmin(admin.ModelAdmin):
+    list_display = ('cantidad_actual',)
+
+
+@admin.register(TransferenciaAlmacen)
+class TransferenciaAlmacenAdmin(admin.ModelAdmin):
+    list_display = ('id', 'solicitud', 'fecha_hora', 'saldo_aseguramiento', 'cantidad_transferida', 'estado')
+    list_filter = ('estado', 'fecha_hora')
+    search_fields = ('solicitud__id',)
 
 
 @admin.register(SuministroCombustible)

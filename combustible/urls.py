@@ -34,7 +34,8 @@ urlpatterns = [
     path('suministros/eliminar/<int:pk>/', views.eliminar_suministro, name='eliminar_suministro'),
     path('suministros/ver/<int:pk>/', views.ver_suministro, name='ver_suministro'),
 
-    # URLs de Almacén de Producción
-    path('almacen-produccion/', views.lista_almacen_produccion, name='lista_almacen_produccion'),
-    path('almacen-produccion/transferir/<int:pk>/', views.confirmar_transferencia, name='confirmar_transferencia'),
+    # URLs de Transferencia entre Almacenes
+    path('transferencias/', views.lista_transferencias, name='lista_transferencias'),
+    path('transferencias/guardar/<int:pk>/', views.guardar_transferencia, name='guardar_transferencia'),
+    path('transferencias/confirmar/<int:pk>/', views.confirmar_transferencia, name='confirmar_transferencia'),
 ]

@@ -1,6 +1,6 @@
 from django import forms
 from django.core.validators import MinValueValidator
-from .models import CatalogoCliente, Transporte, ModeloSolicitud, SuministroCombustible
+from .models import CatalogoCliente, Transporte, ModeloSolicitud, SuministroCombustible, TransferenciaAlmacen
 from django.utils import timezone
 
 
@@ -106,6 +106,57 @@ class ModeloSolicitudForm(forms.ModelForm):
             if fecha_hora > timezone.now():
                 raise forms.ValidationError('No se puede registrar una solicitud con fecha futura.')
         return fecha_hora
+
+
+class TransferenciaAlmacenForm(forms.ModelForm):
+    class Meta:
+        model = TransferenciaAlmacen
+        fields = ['fecha_hora', 'cantidad_transferida']
+        widgets = {
+            'fecha_hora': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local',
+                'format': '%Y-%m-%dT%H:%M',
+            }),
+            'cantidad_transferida': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0.01',
+            }),
+        }
+        labels = {
+            'fecha_hora': 'Fecha y Hora',
+            'cantidad_transferida': 'Transferencia',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.fecha_hora:
+            # Formatear la fecha para el input datetime-local
+            fecha = self.instance.fecha_hora
+            if timezone.is_aware(fecha):
+                fecha = timezone.localtime(fecha)
+            self.fields['fecha_hora'].initial = fecha.strftime('%Y-%m-%dT%H:%M')
+        else:
+            # Si es nuevo, poner fecha actual
+            ahora = timezone.localtime(timezone.now())
+            self.fields['fecha_hora'].initial = ahora.strftime('%Y-%m-%dT%H:%M')
+
+    def clean_fecha_hora(self):
+        fecha_hora = self.cleaned_data.get('fecha_hora')
+        if fecha_hora:
+            if timezone.is_naive(fecha_hora):
+                fecha_hora = timezone.make_aware(fecha_hora)
+            if fecha_hora > timezone.now():
+                raise forms.ValidationError('No se puede registrar una transferencia con fecha futura.')
+        return fecha_hora
+
+    def clean_cantidad_transferida(self):
+        cantidad = self.cleaned_data.get('cantidad_transferida')
+        if cantidad is not None and cantidad <= 0:
+            raise forms.ValidationError('La cantidad debe ser mayor que 0.')
+        return cantidad
 
 
 class SuministroCombustibleForm(forms.ModelForm):

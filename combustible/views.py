@@ -5,8 +5,8 @@ from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud, DetalleSolicitudVehiculo, \
-    AlmacenProduccion, SuministroCombustible
-from .forms import CatalogoClienteForm, TransporteForm, SuministroCombustibleForm
+    AlmacenProduccion, AlmacenAseguramiento, TransferenciaAlmacen, SuministroCombustible
+from .forms import CatalogoClienteForm, TransporteForm, TransferenciaAlmacenForm, SuministroCombustibleForm
 
 
 @login_required
@@ -593,6 +593,18 @@ def aprobar_solicitud(request, pk):
         return redirect('lista_solicitudes')
     solicitud.estado = 'aprobada'
     solicitud.save()
+
+    # Crear registro en TransferenciaAlmacen automáticamente
+    almacen_aseguramiento = AlmacenAseguramiento.objects.first()
+    if not almacen_aseguramiento:
+        almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
+
+    TransferenciaAlmacen.objects.create(
+        solicitud=solicitud,
+        saldo_aseguramiento=almacen_aseguramiento.cantidad_actual,
+        estado='pendiente'
+    )
+
     messages.success(request, f'Solicitud #{solicitud.id} aprobada correctamente.')
     return redirect('lista_solicitudes')
 
@@ -744,58 +756,74 @@ def eliminar_suministro(request, pk):
     return redirect('lista_suministros')
 
 
+# Vistas para Transferencia entre Almacenes
 @login_required
-def lista_almacen_produccion(request):
+def lista_transferencias(request):
     if request.user.departamento not in ['admin', 'petroleo', 'director', 'directivo']:
-        messages.error(request, 'No tiene permisos para ver el Almacén de Producción.')
+        messages.error(request, 'No tiene permisos para ver las transferencias.')
         return redirect('dashboard')
 
-    # Solicitudes aprobadas (pendientes de transferencia y ya transferidas)
-    solicitudes_aprobadas = ModeloSolicitud.objects.filter(estado='aprobada')
-    almacen = AlmacenProduccion.objects.first()
-    if not almacen:
-        almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
+    transferencias = TransferenciaAlmacen.objects.select_related('solicitud').all()
+    almacen_aseguramiento = AlmacenAseguramiento.objects.first()
+    if not almacen_aseguramiento:
+        almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
 
-    puede_transferir = request.user.departamento in ['admin', 'petroleo']
+    puede_editar = request.user.departamento in ['admin', 'petroleo']
+    hay_acciones = puede_editar and transferencias.filter(estado='pendiente').exists()
 
-    return render(request, 'combustible/lista_almacen_produccion.html', {
-        'solicitudes_aprobadas': solicitudes_aprobadas,
-        'almacen': almacen,
-        'puede_transferir': puede_transferir,
+    return render(request, 'combustible/lista_transferencias.html', {
+        'transferencias': transferencias,
+        'almacen_aseguramiento': almacen_aseguramiento,
+        'puede_editar': puede_editar,
+        'hay_acciones': hay_acciones,
+    })
+
+
+@login_required
+def guardar_transferencia(request, pk):
+    if request.user.departamento not in ['admin', 'petroleo']:
+        messages.error(request, 'No tiene permisos para guardar transferencias.')
+        return redirect('lista_transferencias')
+
+    transferencia = get_object_or_404(TransferenciaAlmacen, pk=pk)
+    if transferencia.estado != 'pendiente':
+        messages.error(request, 'Esta transferencia no se puede modificar.')
+        return redirect('lista_transferencias')
+
+    if request.method == 'POST':
+        form = TransferenciaAlmacenForm(request.POST, instance=transferencia)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Transferencia guardada correctamente.')
+            return redirect('lista_transferencias')
+        else:
+            messages.error(request, 'Por favor, corrija los errores señalados.')
+    else:
+        form = TransferenciaAlmacenForm(instance=transferencia)
+
+    return render(request, 'combustible/guardar_transferencia.html', {
+        'form': form,
+        'transferencia': transferencia,
     })
 
 
 @login_required
 def confirmar_transferencia(request, pk):
     if request.user.departamento not in ['admin', 'petroleo']:
-        messages.error(request, 'No tiene permisos para realizar transferencias.')
-        return redirect('lista_almacen_produccion')
+        messages.error(request, 'No tiene permisos para confirmar transferencias.')
+        return redirect('lista_transferencias')
 
-    solicitud = get_object_or_404(ModeloSolicitud, pk=pk)
-    if solicitud.estado != 'aprobada' or solicitud.transferida:
-        messages.error(request, 'Esta solicitud no se puede transferir.')
-        return redirect('lista_almacen_produccion')
+    transferencia = get_object_or_404(TransferenciaAlmacen, pk=pk)
+    if transferencia.estado != 'pendiente':
+        messages.error(request, 'Esta transferencia no se puede confirmar.')
+        return redirect('lista_transferencias')
 
-    almacen = AlmacenProduccion.objects.first()
-    if not almacen:
-        almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
+    if not transferencia.cantidad_transferida or transferencia.cantidad_transferida <= 0:
+        messages.error(request, 'Debe guardar una cantidad de transferencia válida antes de confirmar.')
+        return redirect('lista_transferencias')
 
-    # Verificar que hay suficiente combustible
-    if almacen.cantidad_actual < solicitud.total_general:
-        messages.error(request, 'No hay suficiente combustible en el Almacén de Producción.')
-        return redirect('lista_almacen_produccion')
+    transferencia.estado = 'transferido'
+    transferencia.save()
 
-    # Guardar saldo inicial antes de restar
-    solicitud.saldo_inicial = almacen.cantidad_actual
-
-    # Restar del almacén
-    almacen.cantidad_actual -= solicitud.total_general
-    almacen.save()
-
-    # Guardar saldo final después de restar
-    solicitud.saldo_final = almacen.cantidad_actual
-    solicitud.transferida = True
-    solicitud.save()
-
-    messages.success(request, f'Transferencia realizada correctamente. Se transfirieron {solicitud.total_general} L.')
-    return redirect('lista_almacen_produccion')
+    messages.success(request, f'Transferencia #{transferencia.id} confirmada correctamente.')
+    return redirect('lista_transferencias')

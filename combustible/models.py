@@ -70,9 +70,6 @@ class ModeloSolicitud(models.Model):
     total_consumo = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Total de Consumo')
     total_venta = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Total de Venta')
     total_general = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name='Total General')
-    transferida = models.BooleanField(default=False, verbose_name='Transferida a Aseguramiento')
-    saldo_inicial = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name='Saldo Inicial')
-    saldo_final = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name='Saldo Final')
 
     class Meta:
         verbose_name = 'Modelo de Solicitud'
@@ -125,6 +122,64 @@ class AlmacenProduccion(models.Model):
 
     def __str__(self):
         return f"Almacén de Producción - {self.cantidad_actual} L"
+
+
+class AlmacenAseguramiento(models.Model):
+    cantidad_actual = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Cantidad Actual de Combustible'
+    )
+
+    class Meta:
+        verbose_name = 'Almacén de Aseguramiento'
+        verbose_name_plural = 'Almacén de Aseguramiento'
+
+    def __str__(self):
+        return f"Almacén de Aseguramiento - {self.cantidad_actual} L"
+
+
+class TransferenciaAlmacen(models.Model):
+    ESTADOS_TRANSFERENCIA = [
+        ('pendiente', 'Pendiente'),
+        ('transferido', 'Transferido'),
+    ]
+
+    solicitud = models.OneToOneField(
+        ModeloSolicitud,
+        on_delete=models.CASCADE,
+        related_name='transferencia',
+        verbose_name='Solicitud Aprobada'
+    )
+    fecha_hora = models.DateTimeField(null=True, blank=True, verbose_name='Fecha y Hora de Transferencia')
+    saldo_aseguramiento = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Saldo en Almacén de Aseguramiento'
+    )
+    cantidad_transferida = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Transferencia'
+    )
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADOS_TRANSFERENCIA,
+        default='pendiente',
+        verbose_name='Estado'
+    )
+
+    class Meta:
+        verbose_name = 'Transferencia entre Almacenes'
+        verbose_name_plural = 'Transferencias entre Almacenes'
+        ordering = ['-fecha_hora']
+
+    def __str__(self):
+        return f"Transferencia #{self.id} - Solicitud #{self.solicitud.id}"
 
 
 class SuministroCombustible(models.Model):
