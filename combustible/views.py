@@ -74,11 +74,11 @@ def editar_cliente(request, pk):
 # Vistas para Transporte
 @login_required
 def lista_transporte(request):
-    if request.user.departamento not in ['admin', 'transporte']:
+    if request.user.departamento not in ['admin']:
         messages.error(request, 'No tiene permisos para ver el transporte.')
         return redirect('dashboard')
     transportes = Transporte.objects.select_related('cliente').all()
-    puede_editar = request.user.departamento in ['admin', 'transporte']
+    puede_editar = request.user.departamento in ['admin']
     return render(request, 'combustible/lista_transporte.html', {
         'transportes': transportes,
         'puede_editar': puede_editar,
@@ -89,50 +89,90 @@ def lista_transporte(request):
 def crear_vehiculo(request):
     if request.user.departamento not in ['admin', 'transporte']:
         messages.error(request, 'No tiene permisos para crear vehículos.')
-        return redirect('lista_transporte')
+        return redirect('dashboard')
+
+    cliente_inicial = None
+    cliente_id = request.GET.get('cliente_id') or request.POST.get('cliente')
+
+    if cliente_id:
+        try:
+            cliente_inicial = CatalogoCliente.objects.get(pk=cliente_id)
+        except CatalogoCliente.DoesNotExist:
+            cliente_inicial = None
+
     if request.method == 'POST':
         form = TransporteForm(request.POST)
         if form.is_valid():
-            form.save()
+            vehiculo = form.save()
             messages.success(request, 'Vehículo agregado correctamente.')
+            # Si venía de un cliente específico, redirigir a ver_cliente
+            if cliente_inicial:
+                return redirect('ver_cliente', pk=cliente_inicial.pk)
             return redirect('lista_transporte')
         else:
             messages.error(request, 'Por favor, corrija los errores señalados.')
     else:
-        form = TransporteForm()
+        initial = {}
+        if cliente_inicial:
+            initial['cliente'] = cliente_inicial
+        form = TransporteForm(initial=initial)
+        # Deshabilitar el campo cliente si viene preseleccionado
+        if cliente_inicial:
+            form.fields['cliente'].queryset = CatalogoCliente.objects.filter(pk=cliente_inicial.pk)
+            form.fields['cliente'].initial = cliente_inicial
+            form.fields['cliente'].widget.attrs['readonly'] = True
+            form.fields['cliente'].widget.attrs['disabled'] = 'disabled'
 
-    return render(request, 'combustible/crear_vehiculo.html', {'form': form})
+    return render(request, 'combustible/crear_vehiculo.html', {
+        'form': form,
+        'cliente_inicial': cliente_inicial,
+    })
 
 
 @login_required
 def editar_vehiculo(request, pk):
     if request.user.departamento not in ['admin', 'transporte']:
         messages.error(request, 'No tiene permisos para modificar vehículos.')
-        return redirect('lista_transporte')
+        return redirect('dashboard')
     vehiculo = get_object_or_404(Transporte, pk=pk)
+
+    # Detectar si viene desde ver_cliente
+    desde_cliente = request.GET.get('desde_cliente', False)
+
     if request.method == 'POST':
         form = TransporteForm(request.POST, instance=vehiculo)
         if form.is_valid():
             form.save()
             messages.success(request, 'Vehículo modificado correctamente.')
+            if desde_cliente:
+                return redirect('ver_cliente', pk=vehiculo.cliente.pk)
             return redirect('lista_transporte')
         else:
             messages.error(request, 'Por favor, corrija los errores señalados.')
     else:
         form = TransporteForm(instance=vehiculo)
+        if desde_cliente:
+            # Bloquear campo cliente
+            form.fields['cliente'].widget.attrs['readonly'] = True
+            form.fields['cliente'].widget.attrs['disabled'] = 'disabled'
 
-    return render(request, 'combustible/editar_vehiculo.html', {'form': form, 'vehiculo': vehiculo})
+    return render(request, 'combustible/editar_vehiculo.html', {
+        'form': form,
+        'vehiculo': vehiculo,
+        'desde_cliente': desde_cliente,
+    })
 
 
 @login_required
 def eliminar_vehiculo(request, pk):
     if request.user.departamento not in ['admin', 'transporte']:
         messages.error(request, 'No tiene permisos para eliminar vehículos.')
-        return redirect('lista_transporte')
+        return redirect('dashboard')
     vehiculo = get_object_or_404(Transporte, pk=pk)
+    cliente_pk = vehiculo.cliente.pk
     vehiculo.delete()
     messages.success(request, 'Vehículo eliminado correctamente.')
-    return redirect('lista_transporte')
+    return redirect('ver_cliente', pk=cliente_pk)
 
 
 @login_required
@@ -142,9 +182,11 @@ def ver_cliente(request, pk):
         return redirect('dashboard')
     cliente = get_object_or_404(CatalogoCliente, pk=pk)
     vehiculos = Transporte.objects.filter(cliente=cliente)
+    puede_editar = request.user.departamento in ['admin', 'transporte']
     return render(request, 'combustible/ver_cliente.html', {
         'cliente': cliente,
         'vehiculos': vehiculos,
+        'puede_editar': puede_editar,
     })
 
 
@@ -750,7 +792,7 @@ def confirmar_transferencia(request, pk):
     almacen.cantidad_actual -= solicitud.total_general
     almacen.save()
 
-    # Guardar saldo final desués de restar
+    # Guardar saldo final después de restar
     solicitud.saldo_final = almacen.cantidad_actual
     solicitud.transferida = True
     solicitud.save()

@@ -12,13 +12,21 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                 <h4 class="mb-0 py-2 fw-bold">
                     <i class="bi bi-plus-circle"></i> Nuevo Vehículo
                 </h4>
+                {% if cliente_inicial %}
+                <small class="text-white-50">Cliente: {{ cliente_inicial.cliente }}</small>
+                {% endif %}
             </div>
             <div class="card-body p-4 bg-light">
                 <form method="post" id="form-vehiculo">
                     {% csrf_token %}
                     <div class="mb-3">
                         <label for="id_cliente" class="form-label fw-bold text-secondary">{{ form.cliente.label }} *</label>
-                        {{ form.cliente }}
+                        {% if cliente_inicial %}
+                            <input type="hidden" name="cliente" value="{{ cliente_inicial.id }}">
+                            <input type="text" class="form-control" value="{{ cliente_inicial.cliente }}" readonly disabled>
+                        {% else %}
+                            {{ form.cliente }}
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         <label for="id_tipo_vehiculo" class="form-label fw-bold text-secondary">{{ form.tipo_vehiculo.label }} *</label>
@@ -43,9 +51,15 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                         {% endif %}
                     </div>
                     <div class="d-flex justify-content-between">
-                        <a href="{% url 'lista_transporte' %}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left"></i> Volver
-                        </a>
+                        {% if cliente_inicial %}
+                            <a href="{% url 'ver_cliente' cliente_inicial.id %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Volver
+                            </a>
+                        {% else %}
+                            <a href="{% url 'lista_transporte' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Volver
+                            </a>
+                        {% endif %}
                         <button type="submit" class="btn btn-success fw-bold">
                             <i class="bi bi-check-circle"></i> Guardar Vehículo
                         </button>
