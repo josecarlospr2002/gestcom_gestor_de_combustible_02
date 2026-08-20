@@ -158,6 +158,18 @@ class TransferenciaAlmacenForm(forms.ModelForm):
             raise forms.ValidationError('La cantidad debe ser mayor que 0.')
         return cantidad
 
+    def clean(self):
+        cleaned_data = super().clean()
+        cantidad_transferida = cleaned_data.get('cantidad_transferida')
+
+        if cantidad_transferida and self.instance and self.instance.pk:
+            solicitud = self.instance.solicitud
+            if cantidad_transferida > solicitud.total_general:
+                self.add_error('cantidad_transferida',
+                               f'La transferencia no puede exceder la Solicitud Aprobada ({solicitud.total_general}).')
+
+        return cleaned_data
+
 
 class SuministroCombustibleForm(forms.ModelForm):
     class Meta:

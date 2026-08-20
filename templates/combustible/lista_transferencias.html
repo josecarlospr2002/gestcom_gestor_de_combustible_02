@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
+.table-container {
+    background: white;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+.table thead th {
+    background: linear-gradient(135deg, #0d6efd, #6f42c1);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 1rem;
+}
+.table tbody td {
+    padding: 0.9rem 1rem;
+    vertical-align: middle;
+    border: none;
+}
+.table tbody tr {
+    background-color: white;
+}
+.table tbody tr:hover {
+    background-color: #f0f0ff;
+}
+.fila-clicable {
+    cursor: pointer;
+}
+.titulo-tabla {
+    color: black;
+}
+.contador {
+    color: black;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+}
+.error-message {
+    color: #dc3545;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0 titulo-tabla">
+        <i class="bi bi-arrow-left-right"></i> Transferencia entre Almacenes
+    </h2>
+    <a href="{% url 'dashboard' %}" class="btn btn-danger fw-bold">
+        <i class="bi bi-arrow-left"></i> Volver al Inicio
+    </a>
+</div>
+
+<div class="table-container">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Fecha / Hora</th>
+                    <th>Solicitud Aprobada</th>
+                    <th>Saldo en Almacén de Aseguramiento</th>
+                    <th>Transferencia</th>
+                    <th>Estado</th>
+                    {% if hay_acciones %}
+                    <th>Acciones</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for transferencia in transferencias %}
+                    {% if puede_editar and transferencia.estado == 'pendiente' and not transferencia.cantidad_transferida %}
+                    <tr class="fila-clicable" onclick="abrirModalGuardar('{{ transferencia.id }}')">
+                    {% else %}
+                    <tr>
+                    {% endif %}
+                        <td>
+                            {% if transferencia.fecha_hora %}
+                                {{ transferencia.fecha_hora|date:"d/m/Y H:i" }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ transferencia.solicitud.total_general }}</td>
+                        <td>{{ transferencia.saldo_aseguramiento }}</td>
+                        <td>
+                            {% if transferencia.cantidad_transferida %}
+                                {{ transferencia.cantidad_transferida }}
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if transferencia.estado == 'transferido' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Transferido
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-clock"></i> Pendiente
+                                </span>
+                            {% endif %}
+                        </td>
+                        {% if hay_acciones %}
+                        <td onclick="event.stopPropagation();">
+                            {% if transferencia.estado == 'pendiente' and transferencia.cantidad_transferida %}
+                                <a href="#" class="btn btn-primary btn-sm" title="Modificar"
+                                   onclick="abrirModalGuardar('{{ transferencia.id }}'); return false;">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="#" class="btn btn-success btn-sm" title="Confirmar Transferencia"
+                                   onclick="confirmarTransferencia('{{ transferencia.id }}'); return false;">
+                                    <i class="bi bi-check-circle"></i>
+                                </a>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{% if hay_acciones %}6{% else %}5{% endif %}" class="text-center text-muted py-5">
+                        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                        <p class="mt-3 fs-5">No se encontraron transferencias.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="mt-3 text-end contador">
+    <strong>Total de transferencias: {{ transferencias|length }}</strong>
+</div>
+
+<!-- Modal para Guardar/Editar Transferencia -->
+{% if puede_editar %}
+<div class="modal fade" id="modalGuardarTransferencia" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #0d6efd, #6f42c1);">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil-square"></i> <span id="modal-titulo">Guardar Transferencia</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form method="post" id="form-transferencia" action="">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="modal-fecha-hora" class="form-label fw-bold text-secondary">Fecha y Hora *</label>
+                        <input type="datetime-local" name="fecha_hora" id="modal-fecha-hora" class="form-control" required>
+                        <div id="error-fecha" class="error-message" style="display: none;">
+                            No se puede registrar una transferencia con fecha futura.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary">Solicitud Aprobada</label>
+                        <input type="text" class="form-control" id="modal-solicitud-aprobada" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-secondary">Saldo en Almacén de Aseguramiento</label>
+                        <input type="text" class="form-control" id="modal-saldo-aseguramiento" readonly>
+                    </div>
+                    <div class="mb-4">
+                        <label for="modal-cantidad-transferida" class="form-label fw-bold text-secondary">Transferencia *</label>
+                        <input type="number" name="cantidad_transferida" id="modal-cantidad-transferida" class="form-control"
+                               placeholder="0.00" step="0.01" min="0.01" required>
+                        <div id="error-cantidad" class="error-message" style="display: none;">
+                            La transferencia no puede exceder la Solicitud Aprobada.
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-success fw-bold">
+                            <i class="bi bi-save"></i> Guardar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Transferencia -->
+<div class="modal fade" id="modalConfirmarTransferencia" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #198754, #157347);">
+                <h5 class="modal-title">
+                    <i class="bi bi-check-circle-fill"></i> Confirmar Transferencia
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-truck text-success" style="font-size: 3rem;"></i>
+                <p class="mt-3 fs-5">¿Está seguro de confirmar esta transferencia?</p>
+                <small class="text-muted">Una vez confirmada, no podrá modificarse.</small>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <a href="#" id="confirmarTransferenciaBtn" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Confirmar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Datos de transferencias para el modal
+var transferenciasData = {
+    {% for transferencia in transferencias %}
+    "{{ transferencia.id }}": {
+        solicitudAprobada: "{{ transferencia.solicitud.total_general|floatformat:2 }}".replace(',', '.'),
+        saldoAseguramiento: "{{ transferencia.saldo_aseguramiento|floatformat:2 }}".replace(',', '.'),
+        fechaHora: "{% if transferencia.fecha_hora %}{{ transferencia.fecha_hora|date:'Y-m-d\TH:i' }}{% endif %}",
+        cantidadTransferida: "{% if transferencia.cantidad_transferida %}{{ transferencia.cantidad_transferida|floatformat:2 }}{% endif %}".replace(',', '.')
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+};
+
+function abrirModalGuardar(transferenciaId) {
+    var id = String(transferenciaId);
+    var datos = transferenciasData[id];
+
+    console.log('ID:', id);
+    console.log('Datos:', datos);
+
+    // Limpiar errores
+    document.getElementById('error-fecha').style.display = 'none';
+    document.getElementById('error-cantidad').style.display = 'none';
+
+    // Establecer fecha y hora (mantener valor guardado o poner actual)
+    if (datos && datos.fechaHora) {
+        document.getElementById('modal-fecha-hora').value = datos.fechaHora;
+        document.getElementById('modal-titulo').textContent = 'Modificar Transferencia';
+    } else {
+        var now = new Date();
+        var fecha = now.getFullYear() + '-' +
+            String(now.getMonth() + 1).padStart(2, '0') + '-' +
+            String(now.getDate()).padStart(2, '0') + 'T' +
+            String(now.getHours()).padStart(2, '0') + ':' +
+            String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('modal-fecha-hora').value = fecha;
+        document.getElementById('modal-titulo').textContent = 'Guardar Transferencia';
+    }
+
+    // Establecer valores de solo lectura
+    if (datos) {
+        document.getElementById('modal-solicitud-aprobada').value = datos.solicitudAprobada;
+        document.getElementById('modal-saldo-aseguramiento').value = datos.saldoAseguramiento;
+
+        // Mantener el valor de cantidad transferida si existe
+        if (datos.cantidadTransferida && datos.cantidadTransferida !== '') {
+            document.getElementById('modal-cantidad-transferida').value = datos.cantidadTransferida;
+        } else {
+            document.getElementById('modal-cantidad-transferida').value = '';
+        }
+    }
+
+    // Establecer la acción del formulario
+    document.getElementById('form-transferencia').action = '/transferencias/guardar/' + transferenciaId + '/';
+
+    var modal = new bootstrap.Modal(document.getElementById('modalGuardarTransferencia'));
+    modal.show();
+}
+
+// Validación al enviar el formulario
+document.getElementById('form-transferencia').addEventListener('submit', function(e) {
+    var hayError = false;
+
+    // Validar fecha no futura
+    var fechaHora = document.getElementById('modal-fecha-hora').value;
+    if (fechaHora) {
+        var fechaSeleccionada = new Date(fechaHora);
+        var ahora = new Date();
+        if (fechaSeleccionada > ahora) {
+            document.getElementById('error-fecha').style.display = 'block';
+            hayError = true;
+        } else {
+            document.getElementById('error-fecha').style.display = 'none';
+        }
+    }
+
+    // Validar cantidad no exceda solicitud aprobada
+    var cantidadInput = document.getElementById('modal-cantidad-transferida').value;
+    var cantidad = parseFloat(cantidadInput) || 0;
+
+    var solicitudAprobadaInput = document.getElementById('modal-solicitud-aprobada').value;
+    var solicitudAprobada = parseFloat(solicitudAprobadaInput) || 0;
+
+    console.log('Cantidad:', cantidad);
+    console.log('Solicitud Aprobada:', solicitudAprobada);
+
+    if (cantidad > solicitudAprobada) {
+        document.getElementById('error-cantidad').style.display = 'block';
+        hayError = true;
+    } else {
+        document.getElementById('error-cantidad').style.display = 'none';
+    }
+
+    if (hayError) {
+        e.preventDefault();
+    }
+});
+
+function confirmarTransferencia(transferenciaId) {
+    document.getElementById('confirmarTransferenciaBtn').href = '/transferencias/confirmar/' + transferenciaId + '/';
+    var modal = new bootstrap.Modal(document.getElementById('modalConfirmarTransferencia'));
+    modal.show();
+}
+</script>
+{% endif %}
+{% endblock %}

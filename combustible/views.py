@@ -763,14 +763,14 @@ def lista_transferencias(request):
         messages.error(request, 'No tiene permisos para ver las transferencias.')
         return redirect('dashboard')
 
-    transferencias = TransferenciaAlmacen.objects.select_related('solicitud').all()
+    transferencias = TransferenciaAlmacen.objects.select_related('solicitud').all().order_by('-id')
     almacen_aseguramiento = AlmacenAseguramiento.objects.first()
     if not almacen_aseguramiento:
         almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
 
     puede_editar = request.user.departamento in ['admin', 'petroleo']
-    hay_acciones = puede_editar and transferencias.filter(estado='pendiente').exists()
-
+    hay_acciones = puede_editar and transferencias.filter(estado='pendiente',
+                                                          cantidad_transferida__isnull=False).exists()
     return render(request, 'combustible/lista_transferencias.html', {
         'transferencias': transferencias,
         'almacen_aseguramiento': almacen_aseguramiento,
@@ -798,13 +798,9 @@ def guardar_transferencia(request, pk):
             return redirect('lista_transferencias')
         else:
             messages.error(request, 'Por favor, corrija los errores señalados.')
-    else:
-        form = TransferenciaAlmacenForm(instance=transferencia)
+            return redirect('lista_transferencias')
 
-    return render(request, 'combustible/guardar_transferencia.html', {
-        'form': form,
-        'transferencia': transferencia,
-    })
+    return redirect('lista_transferencias')
 
 
 @login_required
