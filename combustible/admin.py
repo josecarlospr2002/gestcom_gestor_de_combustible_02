@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud, DetalleSolicitudVehiculo, \
-    AlmacenProduccion, AlmacenAseguramiento, TransferenciaAlmacen, OperacionAlmacenProduccion, SuministroCombustible
+    AlmacenProduccion, AlmacenAseguramiento, TransferenciaAlmacen, OperacionAlmacenProduccion
 
 
 @admin.register(CatalogoCliente)
@@ -54,11 +54,5 @@ class TransferenciaAlmacenAdmin(admin.ModelAdmin):
 
 @admin.register(OperacionAlmacenProduccion)
 class OperacionAlmacenProduccionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'fecha_hora', 'existencia', 'entrada_factura', 'generacion', 'transferencia', 'nueva_existencia')
-    list_filter = ('fecha_hora',)
-
-
-@admin.register(SuministroCombustible)
-class SuministroCombustibleAdmin(admin.ModelAdmin):
-    list_display = ('id', 'fecha_hora', 'cantidad', 'cantidad_antes', 'cantidad_despues', 'estado')
+    list_display = ('id', 'fecha_hora', 'existencia', 'entrada_factura', 'generacion', 'transferencia', 'nueva_existencia', 'estado')
     list_filter = ('estado', 'fecha_hora')

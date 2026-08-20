@@ -183,6 +183,11 @@ class TransferenciaAlmacen(models.Model):
 
 
 class OperacionAlmacenProduccion(models.Model):
+    ESTADOS_OPERACION = [
+        ('pendiente', 'Pendiente'),
+        ('validado', 'Validado'),
+    ]
+
     fecha_hora = models.DateTimeField(verbose_name='Fecha y Hora')
     existencia = models.DecimalField(
         max_digits=20,
@@ -212,6 +217,12 @@ class OperacionAlmacenProduccion(models.Model):
         decimal_places=2,
         verbose_name='Nueva Existencia'
     )
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADOS_OPERACION,
+        default='pendiente',
+        verbose_name='Estado'
+    )
 
     class Meta:
         verbose_name = 'Operación de Almacén de Producción'
@@ -220,39 +231,3 @@ class OperacionAlmacenProduccion(models.Model):
 
     def __str__(self):
         return f"Operación #{self.id} - {self.fecha_hora.strftime('%d/%m/%Y %H:%M')}"
-
-
-class SuministroCombustible(models.Model):
-    ESTADOS_SUMINISTRO = [
-        ('pendiente', 'Pendiente a Validar'),
-        ('validado', 'Validado'),
-    ]
-
-    fecha_hora = models.DateTimeField(verbose_name='Fecha y Hora')
-    cantidad = models.DecimalField(
-        max_digits=20,
-        decimal_places=2,
-        verbose_name='Cantidad a Insertar'
-    )
-    descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción / Nota')
-    cantidad_antes = models.DecimalField(
-        max_digits=20,
-        decimal_places=2,
-        default=0,
-        verbose_name='Cantidad Antes de Insertar'
-    )
-    cantidad_despues = models.DecimalField(
-        max_digits=20,
-        decimal_places=2,
-        default=0,
-        verbose_name='Cantidad Después de Insertar'
-    )
-    estado = models.CharField(max_length=20, choices=ESTADOS_SUMINISTRO, default='pendiente', verbose_name='Estado')
-
-    class Meta:
-        verbose_name = 'Suministro de Combustible'
-        verbose_name_plural = 'Suministros de Combustible'
-        ordering = ['-fecha_hora']
-
-    def __str__(self):
-        return f"Suministro #{self.id} - {self.fecha_hora.strftime('%d/%m/%Y %H:%M')}"

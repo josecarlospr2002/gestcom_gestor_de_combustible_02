@@ -26,14 +26,6 @@ urlpatterns = [
     path('solicitudes/aprobar/<int:pk>/', views.aprobar_solicitud, name='aprobar_solicitud'),
     path('solicitudes/rechazar/<int:pk>/', views.rechazar_solicitud, name='rechazar_solicitud'),
 
-    # URLs de Suministro de Combustible
-    path('suministros/', views.lista_suministros, name='lista_suministros'),
-    path('suministros/crear/', views.crear_suministro, name='crear_suministro'),
-    path('suministros/editar/<int:pk>/', views.editar_suministro, name='editar_suministro'),
-    path('suministros/validar/<int:pk>/', views.validar_suministro, name='validar_suministro'),
-    path('suministros/eliminar/<int:pk>/', views.eliminar_suministro, name='eliminar_suministro'),
-    path('suministros/ver/<int:pk>/', views.ver_suministro, name='ver_suministro'),
-
     # URLs de Transferencia entre Almacenes
     path('transferencias/', views.lista_transferencias, name='lista_transferencias'),
     path('transferencias/guardar/<int:pk>/', views.guardar_transferencia, name='guardar_transferencia'),
@@ -42,4 +34,7 @@ urlpatterns = [
     # URLs de Operaciones de Almacén de Producción
     path('almacen-produccion/', views.lista_operaciones_almacen, name='lista_operaciones_almacen'),
     path('almacen-produccion/crear/', views.crear_operacion_almacen, name='crear_operacion_almacen'),
+    path('almacen-produccion/editar/<int:pk>/', views.editar_operacion_almacen, name='editar_operacion_almacen'),
+    path('almacen-produccion/validar/<int:pk>/', views.validar_operacion_almacen, name='validar_operacion_almacen'),
+    path('almacen-produccion/eliminar/<int:pk>/', views.eliminar_operacion_almacen, name='eliminar_operacion_almacen'),
 ]

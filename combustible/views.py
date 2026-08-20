@@ -5,9 +5,8 @@ from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud, DetalleSolicitudVehiculo, \
-    AlmacenProduccion, AlmacenAseguramiento, TransferenciaAlmacen, OperacionAlmacenProduccion, SuministroCombustible
-from .forms import CatalogoClienteForm, TransporteForm, TransferenciaAlmacenForm, OperacionAlmacenProduccionForm, \
-    SuministroCombustibleForm
+    AlmacenProduccion, AlmacenAseguramiento, TransferenciaAlmacen, OperacionAlmacenProduccion
+from .forms import CatalogoClienteForm, TransporteForm, TransferenciaAlmacenForm, OperacionAlmacenProduccionForm
 
 
 @login_required
@@ -626,137 +625,6 @@ def rechazar_solicitud(request, pk):
     return redirect('lista_solicitudes')
 
 
-@login_required
-def lista_suministros(request):
-    if request.user.departamento not in ['admin', 'petroleo']:
-        messages.error(request, 'No tiene permisos para ver los suministros.')
-        return redirect('dashboard')
-    suministros = SuministroCombustible.objects.all().order_by('-fecha_hora')
-    almacen = AlmacenProduccion.objects.first()
-    if not almacen:
-        almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
-
-    # Verificar si hay acciones disponibles (algún suministro pendiente)
-    puede_editar = request.user.departamento in ['admin', 'petroleo']
-    hay_acciones = puede_editar and suministros.filter(estado='pendiente').exists()
-
-    return render(request, 'combustible/lista_suministros.html', {
-        'suministros': suministros,
-        'almacen': almacen,
-        'hay_acciones': hay_acciones,
-        'puede_editar': puede_editar,
-    })
-
-
-@login_required
-def crear_suministro(request):
-    if request.user.departamento not in ['admin', 'petroleo']:
-        messages.error(request, 'No tiene permisos para crear suministros.')
-        return redirect('lista_suministros')
-
-    almacen = AlmacenProduccion.objects.first()
-    if not almacen:
-        almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
-
-    if request.method == 'POST':
-        form = SuministroCombustibleForm(request.POST)
-        if form.is_valid():
-            suministro = form.save(commit=False)
-            suministro.cantidad_antes = almacen.cantidad_actual
-            suministro.cantidad_despues = almacen.cantidad_actual
-            suministro.estado = 'pendiente'
-            suministro.save()
-            messages.success(request, 'Suministro creado correctamente. Pendiente de validar.')
-            return redirect('lista_suministros')
-        else:
-            messages.error(request, 'Por favor, corrija los errores señalados.')
-    else:
-        form = SuministroCombustibleForm()
-
-    return render(request, 'combustible/crear_suministro.html', {'form': form})
-
-
-@login_required
-def editar_suministro(request, pk):
-    if request.user.departamento not in ['admin', 'petroleo']:
-        messages.error(request, 'No tiene permisos para modificar suministros.')
-        return redirect('lista_suministros')
-
-    suministro = get_object_or_404(SuministroCombustible, pk=pk)
-    if suministro.estado != 'pendiente':
-        messages.error(request, 'Este suministro no se puede modificar.')
-        return redirect('lista_suministros')
-
-    if request.method == 'POST':
-        form = SuministroCombustibleForm(request.POST, instance=suministro)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Suministro modificado correctamente.')
-            return redirect('lista_suministros')
-        else:
-            messages.error(request, 'Por favor, corrija los errores señalados.')
-    else:
-        form = SuministroCombustibleForm(instance=suministro)
-
-    return render(request, 'combustible/editar_suministro.html', {'form': form, 'suministro': suministro})
-
-
-@login_required
-def validar_suministro(request, pk):
-    if request.user.departamento not in ['admin', 'petroleo']:
-        messages.error(request, 'No tiene permisos para validar suministros.')
-        return redirect('lista_suministros')
-
-    suministro = get_object_or_404(SuministroCombustible, pk=pk)
-    if suministro.estado != 'pendiente':
-        messages.error(request, 'Este suministro no se puede validar.')
-        return redirect('lista_suministros')
-
-    almacen = AlmacenProduccion.objects.first()
-    if not almacen:
-        almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
-
-    # Actualizar almacén
-    almacen.cantidad_actual += suministro.cantidad
-    almacen.save()
-
-    # Actualizar suministro
-    suministro.cantidad_despues = almacen.cantidad_actual
-    suministro.estado = 'validado'
-    suministro.save()
-
-    messages.success(request, 'Suministro validado correctamente. Combustible agregado al almacén.')
-    return redirect('lista_suministros')
-
-
-@login_required
-def ver_suministro(request, pk):
-    if request.user.departamento not in ['admin', 'petroleo']:
-        messages.error(request, 'No tiene permisos para ver este suministro.')
-        return redirect('lista_suministros')
-
-    suministro = get_object_or_404(SuministroCombustible, pk=pk)
-    return render(request, 'combustible/ver_suministro.html', {
-        'suministro': suministro,
-    })
-
-
-@login_required
-def eliminar_suministro(request, pk):
-    if request.user.departamento not in ['admin', 'petroleo']:
-        messages.error(request, 'No tiene permisos para eliminar suministros.')
-        return redirect('lista_suministros')
-
-    suministro = get_object_or_404(SuministroCombustible, pk=pk)
-    if suministro.estado != 'pendiente':
-        messages.error(request, 'Este suministro no se puede eliminar.')
-        return redirect('lista_suministros')
-
-    suministro.delete()
-    messages.success(request, 'Suministro eliminado correctamente.')
-    return redirect('lista_suministros')
-
-
 # Vistas para Transferencia entre Almacenes
 @login_required
 def lista_transferencias(request):
@@ -839,11 +707,13 @@ def lista_operaciones_almacen(request):
         almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
 
     puede_editar = request.user.departamento in ['admin', 'petroleo']
+    hay_acciones = puede_editar and operaciones.filter(estado='pendiente').exists()
 
     return render(request, 'combustible/lista_operaciones_almacen.html', {
         'operaciones': operaciones,
         'almacen': almacen,
         'puede_editar': puede_editar,
+        'hay_acciones': hay_acciones,
     })
 
 
@@ -853,8 +723,8 @@ def crear_operacion_almacen(request):
         messages.error(request, 'No tiene permisos para crear operaciones.')
         return redirect('lista_operaciones_almacen')
 
-    # Obtener la última operación para la existencia
-    ultima_operacion = OperacionAlmacenProduccion.objects.order_by('-id').first()
+    # Obtener la última operación validada para la existencia
+    ultima_operacion = OperacionAlmacenProduccion.objects.filter(estado='validado').order_by('-id').first()
 
     # Obtener el almacén de producción
     almacen = AlmacenProduccion.objects.first()
@@ -870,7 +740,7 @@ def crear_operacion_almacen(request):
     # Calcular transferencias no contadas
     transferencia = Decimal('0')
     if ultima_operacion:
-        # Buscar transferencias confirmadas después del último registro
+        # Buscar transferencias confirmadas después del último registro validado
         transferencias_pendientes = TransferenciaAlmacen.objects.filter(
             estado='transferido',
             fecha_hora__gt=ultima_operacion.fecha_hora
@@ -890,13 +760,10 @@ def crear_operacion_almacen(request):
             operacion.existencia = existencia
             operacion.transferencia = transferencia
             operacion.nueva_existencia = (existencia + operacion.entrada_factura) - operacion.generacion - transferencia
+            operacion.estado = 'pendiente'
             operacion.save()
 
-            # Actualizar el almacén de producción
-            almacen.cantidad_actual = operacion.nueva_existencia
-            almacen.save()
-
-            messages.success(request, 'Operación registrada correctamente.')
+            messages.success(request, 'Operación guardada correctamente. Pendiente de validar.')
             return redirect('lista_operaciones_almacen')
         else:
             messages.error(request, 'Por favor, corrija los errores señalados.')
@@ -908,3 +775,74 @@ def crear_operacion_almacen(request):
         'existencia': existencia,
         'transferencia': transferencia,
     })
+
+
+@login_required
+def editar_operacion_almacen(request, pk):
+    if request.user.departamento not in ['admin', 'petroleo']:
+        messages.error(request, 'No tiene permisos para modificar operaciones.')
+        return redirect('lista_operaciones_almacen')
+
+    operacion = get_object_or_404(OperacionAlmacenProduccion, pk=pk)
+    if operacion.estado != 'pendiente':
+        messages.error(request, 'Esta operación no se puede modificar.')
+        return redirect('lista_operaciones_almacen')
+
+    if request.method == 'POST':
+        form = OperacionAlmacenProduccionForm(request.POST, instance=operacion)
+        if form.is_valid():
+            operacion = form.save(commit=False)
+            operacion.nueva_existencia = (operacion.existencia + operacion.entrada_factura) - operacion.generacion - operacion.transferencia
+            operacion.save()
+            messages.success(request, 'Operación modificada correctamente.')
+            return redirect('lista_operaciones_almacen')
+        else:
+            messages.error(request, 'Por favor, corrija los errores señalados.')
+    else:
+        form = OperacionAlmacenProduccionForm(instance=operacion)
+
+    return render(request, 'combustible/editar_operacion_almacen.html', {
+        'form': form,
+        'operacion': operacion,
+    })
+
+
+@login_required
+def validar_operacion_almacen(request, pk):
+    if request.user.departamento not in ['admin', 'petroleo']:
+        messages.error(request, 'No tiene permisos para validar operaciones.')
+        return redirect('lista_operaciones_almacen')
+
+    operacion = get_object_or_404(OperacionAlmacenProduccion, pk=pk)
+    if operacion.estado != 'pendiente':
+        messages.error(request, 'Esta operación no se puede validar.')
+        return redirect('lista_operaciones_almacen')
+
+    operacion.estado = 'validado'
+    operacion.save()
+
+    # Actualizar el almacén de producción
+    almacen = AlmacenProduccion.objects.first()
+    if not almacen:
+        almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
+    almacen.cantidad_actual = operacion.nueva_existencia
+    almacen.save()
+
+    messages.success(request, f'Operación #{operacion.id} validada correctamente.')
+    return redirect('lista_operaciones_almacen')
+
+
+@login_required
+def eliminar_operacion_almacen(request, pk):
+    if request.user.departamento not in ['admin', 'petroleo']:
+        messages.error(request, 'No tiene permisos para eliminar operaciones.')
+        return redirect('lista_operaciones_almacen')
+
+    operacion = get_object_or_404(OperacionAlmacenProduccion, pk=pk)
+    if operacion.estado != 'pendiente':
+        messages.error(request, 'Esta operación no se puede eliminar.')
+        return redirect('lista_operaciones_almacen')
+
+    operacion.delete()
+    messages.success(request, 'Operación eliminada correctamente.')
+    return redirect('lista_operaciones_almacen')
