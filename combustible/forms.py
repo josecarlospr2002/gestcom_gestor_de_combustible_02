@@ -1,6 +1,6 @@
 from django import forms
 from django.core.validators import MinValueValidator
-from .models import CatalogoCliente, Transporte, ModeloSolicitud, SuministroCombustible, TransferenciaAlmacen
+from .models import CatalogoCliente, Transporte, ModeloSolicitud, SuministroCombustible, TransferenciaAlmacen, OperacionAlmacenProduccion
 from django.utils import timezone
 
 
@@ -169,6 +169,70 @@ class TransferenciaAlmacenForm(forms.ModelForm):
                                f'La transferencia no puede exceder la Solicitud Aprobada ({solicitud.total_general}).')
 
         return cleaned_data
+
+
+class OperacionAlmacenProduccionForm(forms.ModelForm):
+    class Meta:
+        model = OperacionAlmacenProduccion
+        fields = ['fecha_hora', 'entrada_factura', 'generacion']
+        widgets = {
+            'fecha_hora': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local',
+                'format': '%Y-%m-%dT%H:%M',
+            }),
+            'entrada_factura': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0',
+            }),
+            'generacion': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0',
+            }),
+        }
+        labels = {
+            'fecha_hora': 'Fecha y Hora',
+            'entrada_factura': 'Entrada por Factura',
+            'generacion': 'Generación',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.fecha_hora:
+            # Formatear la fecha para el input datetime-local
+            fecha = self.instance.fecha_hora
+            if timezone.is_aware(fecha):
+                fecha = timezone.localtime(fecha)
+            self.fields['fecha_hora'].initial = fecha.strftime('%Y-%m-%dT%H:%M')
+        else:
+            # Si es nuevo, poner fecha actual
+            ahora = timezone.localtime(timezone.now())
+            self.fields['fecha_hora'].initial = ahora.strftime('%Y-%m-%dT%H:%M')
+
+    def clean_fecha_hora(self):
+        fecha_hora = self.cleaned_data.get('fecha_hora')
+        if fecha_hora:
+            if timezone.is_naive(fecha_hora):
+                fecha_hora = timezone.make_aware(fecha_hora)
+            if fecha_hora > timezone.now():
+                raise forms.ValidationError('No se puede registrar una operación con fecha futura.')
+        return fecha_hora
+
+    def clean_entrada_factura(self):
+        entrada = self.cleaned_data.get('entrada_factura')
+        if entrada is not None and entrada < 0:
+            raise forms.ValidationError('La entrada por factura no puede ser negativa.')
+        return entrada
+
+    def clean_generacion(self):
+        generacion = self.cleaned_data.get('generacion')
+        if generacion is not None and generacion < 0:
+            raise forms.ValidationError('La generación no puede ser negativa.')
+        return generacion
 
 
 class SuministroCombustibleForm(forms.ModelForm):

@@ -5,8 +5,9 @@ from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud, DetalleSolicitudVehiculo, \
-    AlmacenProduccion, AlmacenAseguramiento, TransferenciaAlmacen, SuministroCombustible
-from .forms import CatalogoClienteForm, TransporteForm, TransferenciaAlmacenForm, SuministroCombustibleForm
+    AlmacenProduccion, AlmacenAseguramiento, TransferenciaAlmacen, OperacionAlmacenProduccion, SuministroCombustible
+from .forms import CatalogoClienteForm, TransporteForm, TransferenciaAlmacenForm, OperacionAlmacenProduccionForm, \
+    SuministroCombustibleForm
 
 
 @login_required
@@ -823,3 +824,87 @@ def confirmar_transferencia(request, pk):
 
     messages.success(request, f'Transferencia #{transferencia.id} confirmada correctamente.')
     return redirect('lista_transferencias')
+
+
+# Vistas para Operaciones de Almacén de Producción
+@login_required
+def lista_operaciones_almacen(request):
+    if request.user.departamento not in ['admin', 'petroleo', 'director', 'directivo']:
+        messages.error(request, 'No tiene permisos para ver las operaciones del almacén.')
+        return redirect('dashboard')
+
+    operaciones = OperacionAlmacenProduccion.objects.all().order_by('-id')
+    almacen = AlmacenProduccion.objects.first()
+    if not almacen:
+        almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
+
+    puede_editar = request.user.departamento in ['admin', 'petroleo']
+
+    return render(request, 'combustible/lista_operaciones_almacen.html', {
+        'operaciones': operaciones,
+        'almacen': almacen,
+        'puede_editar': puede_editar,
+    })
+
+
+@login_required
+def crear_operacion_almacen(request):
+    if request.user.departamento not in ['admin', 'petroleo']:
+        messages.error(request, 'No tiene permisos para crear operaciones.')
+        return redirect('lista_operaciones_almacen')
+
+    # Obtener la última operación para la existencia
+    ultima_operacion = OperacionAlmacenProduccion.objects.order_by('-id').first()
+
+    # Obtener el almacén de producción
+    almacen = AlmacenProduccion.objects.first()
+    if not almacen:
+        almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
+
+    # Determinar la existencia actual
+    if ultima_operacion:
+        existencia = ultima_operacion.nueva_existencia
+    else:
+        existencia = almacen.cantidad_actual
+
+    # Calcular transferencias no contadas
+    transferencia = Decimal('0')
+    if ultima_operacion:
+        # Buscar transferencias confirmadas después del último registro
+        transferencias_pendientes = TransferenciaAlmacen.objects.filter(
+            estado='transferido',
+            fecha_hora__gt=ultima_operacion.fecha_hora
+        )
+    else:
+        # Primera operación: buscar todas las transferencias confirmadas
+        transferencias_pendientes = TransferenciaAlmacen.objects.filter(estado='transferido')
+
+    for t in transferencias_pendientes:
+        if t.cantidad_transferida:
+            transferencia += t.cantidad_transferida
+
+    if request.method == 'POST':
+        form = OperacionAlmacenProduccionForm(request.POST)
+        if form.is_valid():
+            operacion = form.save(commit=False)
+            operacion.existencia = existencia
+            operacion.transferencia = transferencia
+            operacion.nueva_existencia = (existencia + operacion.entrada_factura) - operacion.generacion - transferencia
+            operacion.save()
+
+            # Actualizar el almacén de producción
+            almacen.cantidad_actual = operacion.nueva_existencia
+            almacen.save()
+
+            messages.success(request, 'Operación registrada correctamente.')
+            return redirect('lista_operaciones_almacen')
+        else:
+            messages.error(request, 'Por favor, corrija los errores señalados.')
+    else:
+        form = OperacionAlmacenProduccionForm()
+
+    return render(request, 'combustible/crear_operacion_almacen.html', {
+        'form': form,
+        'existencia': existencia,
+        'transferencia': transferencia,
+    })

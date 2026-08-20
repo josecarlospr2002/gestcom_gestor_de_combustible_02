@@ -38,4 +38,8 @@ urlpatterns = [
     path('transferencias/', views.lista_transferencias, name='lista_transferencias'),
     path('transferencias/guardar/<int:pk>/', views.guardar_transferencia, name='guardar_transferencia'),
     path('transferencias/confirmar/<int:pk>/', views.confirmar_transferencia, name='confirmar_transferencia'),
+
+    # URLs de Operaciones de Almacén de Producción
+    path('almacen-produccion/', views.lista_operaciones_almacen, name='lista_operaciones_almacen'),
+    path('almacen-produccion/crear/', views.crear_operacion_almacen, name='crear_operacion_almacen'),
 ]

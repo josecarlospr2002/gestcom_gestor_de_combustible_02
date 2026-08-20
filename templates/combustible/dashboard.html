@@ -50,6 +50,10 @@
             color: #333;
             font-weight: 700;
         }
+
+        .card-clicable {
+            cursor: pointer;
+        }
     </style>
 
     <div class="text-center mb-4">
@@ -60,6 +64,19 @@
     </div>
 
     <div class="row g-4 justify-content-center mb-4">
+        {% if user.departamento == 'admin' or user.departamento == 'petroleo' or user.departamento == 'director' or user.departamento == 'directivo' %}
+        <div class="col-md-4">
+            <div class="card card-dashboard border-primary card-clicable" onclick="window.location.href='{% url 'lista_operaciones_almacen' %}'">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-fuel-pump"></i> Almacén de Producción
+                </div>
+                <div class="card-body text-center">
+                    <h3 class="card-title text-primary">{{ cantidad_almacen|default:"0" }} L</h3>
+                    <p class="card-text text-muted mb-0">Combustible disponible</p>
+                </div>
+            </div>
+        </div>
+        {% else %}
         <div class="col-md-4">
             <div class="card card-dashboard border-primary">
                 <div class="card-header bg-primary text-white">
@@ -71,6 +88,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
         <div class="col-md-4">
             <div class="card card-dashboard border-success">
                 <div class="card-header bg-success text-white">

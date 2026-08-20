@@ -182,6 +182,46 @@ class TransferenciaAlmacen(models.Model):
         return f"Transferencia #{self.id} - Solicitud #{self.solicitud.id}"
 
 
+class OperacionAlmacenProduccion(models.Model):
+    fecha_hora = models.DateTimeField(verbose_name='Fecha y Hora')
+    existencia = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        verbose_name='Existencia'
+    )
+    entrada_factura = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Entrada por Factura'
+    )
+    generacion = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Generación'
+    )
+    transferencia = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Transferencia'
+    )
+    nueva_existencia = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        verbose_name='Nueva Existencia'
+    )
+
+    class Meta:
+        verbose_name = 'Operación de Almacén de Producción'
+        verbose_name_plural = 'Operaciones de Almacén de Producción'
+        ordering = ['-fecha_hora']
+
+    def __str__(self):
+        return f"Operación #{self.id} - {self.fecha_hora.strftime('%d/%m/%Y %H:%M')}"
+
+
 class SuministroCombustible(models.Model):
     ESTADOS_SUMINISTRO = [
         ('pendiente', 'Pendiente a Validar'),

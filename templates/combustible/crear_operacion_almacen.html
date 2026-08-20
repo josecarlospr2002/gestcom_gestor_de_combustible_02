@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
+.info-box {
+    background: white;
+    border-radius: 1rem;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 0.2rem 0.5rem rgba(0, 0, 0, 0.06);
+    border-left: 4px solid #6f42c1;
+}
+.info-box p {
+    margin-bottom: 0;
+    font-weight: 600;
+}
+</style>
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-7">
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-header text-white text-center" style="background: linear-gradient(135deg, #0d6efd, #6f42c1);">
+                <h4 class="mb-0 py-2 fw-bold">
+                    <i class="bi bi-plus-circle"></i> Nueva Operación - Almacén de Producción
+                </h4>
+            </div>
+            <div class="card-body p-4 bg-light">
+                <div class="info-box">
+                    <p><strong>Existencia:</strong> {{ existencia }} L</p>
+                </div>
+                <div class="info-box">
+                    <p><strong>Transferencia:</strong> {{ transferencia }} L</p>
+                </div>
+
+                <form method="post" id="form-operacion">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_fecha_hora" class="form-label fw-bold text-secondary">{{ form.fecha_hora.label }} *</label>
+                        {{ form.fecha_hora }}
+                        {% if form.fecha_hora.errors %}
+                            <div class="text-danger mt-1">{{ form.fecha_hora.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_entrada_factura" class="form-label fw-bold text-secondary">{{ form.entrada_factura.label }}</label>
+                        {{ form.entrada_factura }}
+                        {% if form.entrada_factura.errors %}
+                            <div class="text-danger mt-1">{{ form.entrada_factura.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-4">
+                        <label for="id_generacion" class="form-label fw-bold text-secondary">{{ form.generacion.label }}</label>
+                        {{ form.generacion }}
+                        {% if form.generacion.errors %}
+                            <div class="text-danger mt-1">{{ form.generacion.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'lista_operaciones_almacen' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </a>
+                        <button type="submit" class="btn btn-success fw-bold">
+                            <i class="bi bi-save"></i> Guardar Operación
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var fechaHora = document.getElementById('id_fecha_hora');
+    if (!fechaHora.value) {
+        var now = new Date();
+        var fecha = now.getFullYear() + '-' +
+            String(now.getMonth() + 1).padStart(2, '0') + '-' +
+            String(now.getDate()).padStart(2, '0') + 'T' +
+            String(now.getHours()).padStart(2, '0') + ':' +
+            String(now.getMinutes()).padStart(2, '0');
+        fechaHora.value = fecha;
+    }
+});
+</script>
+{% endblock %}
