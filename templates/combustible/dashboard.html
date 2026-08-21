@@ -89,17 +89,33 @@
             </div>
         </div>
         {% endif %}
+
+        {% if user.departamento == 'admin' or user.departamento == 'almacen' or user.departamento == 'director' or user.departamento == 'directivo' %}
         <div class="col-md-4">
-            <div class="card card-dashboard border-success">
+            <div class="card card-dashboard border-success card-clicable" onclick="window.location.href='{% url 'lista_registros_aseguramiento' %}'">
                 <div class="card-header bg-success text-white">
-                    <i class="bi bi-truck"></i> Módulo 2
+                    <i class="bi bi-box-seam"></i> Almacén de Aseguramiento
                 </div>
                 <div class="card-body text-center">
-                    <h3 class="card-title text-success">0</h3>
-                    <p class="card-text text-muted mb-0">Registros</p>
+                    <h3 class="card-title text-success">{{ cantidad_aseguramiento|default:"0" }} L</h3>
+                    <p class="card-text text-muted mb-0">Combustible disponible</p>
                 </div>
             </div>
         </div>
+        {% else %}
+        <div class="col-md-4">
+            <div class="card card-dashboard border-success">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-box-seam"></i> Almacén de Aseguramiento
+                </div>
+                <div class="card-body text-center">
+                    <h3 class="card-title text-success">{{ cantidad_aseguramiento|default:"0" }} L</h3>
+                    <p class="card-text text-muted mb-0">Combustible disponible</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="col-md-4">
             <div class="card card-dashboard" style="border-color: #6f42c1 !important;">
                 <div class="card-header text-white" style="background-color: #7c5cbf !important;">

@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
+.table-container {
+    background: white;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+.table thead th {
+    background: linear-gradient(135deg, #0d6efd, #6f42c1);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 1rem;
+}
+.table tbody td {
+    padding: 0.9rem 1rem;
+    vertical-align: middle;
+    border: none;
+}
+.table tbody tr {
+    background-color: white;
+}
+.table tbody tr:hover {
+    background-color: #f0f0ff;
+}
+.fila-clicable {
+    cursor: pointer;
+}
+.titulo-tabla {
+    color: black;
+}
+.contador {
+    color: black;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0 titulo-tabla">
+        <i class="bi bi-box-seam"></i> Almacén de Aseguramiento
+    </h2>
+    <a href="{% url 'dashboard' %}" class="btn btn-danger fw-bold">
+        <i class="bi bi-arrow-left"></i> Volver al Inicio
+    </a>
+</div>
+
+<div class="table-container">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Fecha / Hora</th>
+                    <th>Solicitud</th>
+                    <th>Cantidad Aprobada</th>
+                    <th>Despacho Real</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for registro in registros %}
+                <tr class="fila-clicable" onclick="window.location.href='{% url 'ver_registro_aseguramiento' registro.id %}'">
+                    <td>{{ registro.fecha_hora|date:"d/m/Y H:i" }}</td>
+                    <td>#{{ registro.solicitud.id }}</td>
+                    <td>{{ registro.cantidad_total_aprobada }}</td>
+                    <td>{{ registro.despacho_real_total }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-5">
+                        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                        <p class="mt-3 fs-5">No se encontraron registros.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="mt-3 text-end contador">
+    <strong>Total de registros: {{ registros|length }}</strong>
+</div>
+{% endblock %}

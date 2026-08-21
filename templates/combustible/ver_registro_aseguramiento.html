@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
+.table-container {
+    background: white;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+.table thead th {
+    background: linear-gradient(135deg, #0d6efd, #6f42c1);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 1rem;
+}
+.table tbody td {
+    padding: 0.9rem 1rem;
+    vertical-align: middle;
+    border: none;
+}
+.table tbody tr {
+    background-color: white;
+}
+.table tbody tr:hover {
+    background-color: #f0f0ff;
+}
+.titulo-tabla {
+    color: black;
+}
+.info-registro {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.06);
+    border-left: 4px solid #28a745;
+}
+.total-box {
+    background: #e8f5e9;
+    border-radius: 1rem;
+    padding: 1rem 1.5rem;
+    margin-top: 1rem;
+    box-shadow: 0 0.2rem 0.5rem rgba(0, 0, 0, 0.06);
+    border-left: 4px solid #28a745;
+}
+.total-box p {
+    margin-bottom: 0;
+    font-weight: 700;
+}
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0 titulo-tabla">
+        <i class="bi bi-box-seam"></i> Registro de Aseguramiento
+    </h2>
+    <a href="{% url 'lista_registros_aseguramiento' %}" class="btn btn-danger fw-bold">
+        <i class="bi bi-arrow-left"></i> Volver
+    </a>
+</div>
+
+<div class="info-registro">
+    <div class="row">
+        <div class="col-md-4">
+            <p><strong>Fecha / Hora:</strong> {{ registro.fecha_hora|date:"d/m/Y H:i" }}</p>
+        </div>
+        <div class="col-md-4">
+            <p><strong>Solicitud:</strong> #{{ registro.solicitud.id }}</p>
+        </div>
+        <div class="col-md-4">
+            <p><strong>Cantidad Total Aprobada:</strong> {{ registro.cantidad_total_aprobada }}</p>
+        </div>
+    </div>
+</div>
+
+<form method="post" action="{% url 'guardar_despacho_real' registro.id %}" id="form-despacho">
+    {% csrf_token %}
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Chapa del Vehículo</th>
+                        <th>Cantidad Aprobada</th>
+                        <th>Despacho Real</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for despacho in despachos %}
+                    <tr>
+                        <td>{{ despacho.detalle_vehiculo.detalle_solicitud.cliente.cliente }}</td>
+                        <td>{{ despacho.detalle_vehiculo.transporte.chapa }}</td>
+                        <td>{{ despacho.detalle_vehiculo.cant_abastecer }}</td>
+                        <td>
+                            {% if puede_editar %}
+                            <input type="number" name="despacho_{{ despacho.id }}"
+                                   class="form-control form-control-sm"
+                                   value="{{ despacho.despacho_real }}"
+                                   placeholder="0.00" step="0.01" min="0"
+                                   max="{{ despacho.detalle_vehiculo.cant_abastecer }}">
+                            {% else %}
+                            {{ despacho.despacho_real }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-5">
+                            <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                            <p class="mt-3 fs-5">No se encontraron vehículos.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="total-box">
+        <p><strong>Despacho Real Total:</strong> <span id="despacho-total">{{ registro.despacho_real_total }}</span></p>
+    </div>
+
+    {% if puede_editar %}
+    <div class="d-flex justify-content-end mt-3 pb-4">
+        <button type="submit" class="btn btn-success fw-bold">
+            <i class="bi bi-save"></i> Guardar Despachos
+        </button>
+    </div>
+    {% endif %}
+</form>
+
+{% if puede_editar %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var inputs = document.querySelectorAll('input[type="number"][name^="despacho_"]');
+
+    function calcularTotal() {
+        var total = 0;
+        inputs.forEach(function(input) {
+            var valor = parseFloat(input.value) || 0;
+            total += valor;
+        });
+        total = Math.round(total * 100) / 100;
+        document.getElementById('despacho-total').textContent = total.toFixed(2);
+    }
+
+    inputs.forEach(function(input) {
+        input.addEventListener('input', calcularTotal);
+    });
+});
+</script>
+{% endif %}
+{% endblock %}
