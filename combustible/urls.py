@@ -37,4 +37,9 @@ urlpatterns = [
     path('almacen-produccion/editar/<int:pk>/', views.editar_operacion_almacen, name='editar_operacion_almacen'),
     path('almacen-produccion/validar/<int:pk>/', views.validar_operacion_almacen, name='validar_operacion_almacen'),
     path('almacen-produccion/eliminar/<int:pk>/', views.eliminar_operacion_almacen, name='eliminar_operacion_almacen'),
+
+    # URLs de Almacén de Aseguramiento
+    path('almacen-aseguramiento/', views.lista_registros_aseguramiento, name='lista_registros_aseguramiento'),
+    path('almacen-aseguramiento/ver/<int:pk>/', views.ver_registro_aseguramiento, name='ver_registro_aseguramiento'),
+    path('almacen-aseguramiento/guardar-despacho/<int:pk>/', views.guardar_despacho_real, name='guardar_despacho_real'),
 ]

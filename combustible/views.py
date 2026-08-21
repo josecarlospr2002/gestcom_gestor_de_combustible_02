@@ -5,7 +5,8 @@ from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud, DetalleSolicitudVehiculo, \
-    AlmacenProduccion, AlmacenAseguramiento, TransferenciaAlmacen, OperacionAlmacenProduccion
+    AlmacenProduccion, AlmacenAseguramiento, TransferenciaAlmacen, OperacionAlmacenProduccion, \
+    RegistroAlmacenAseguramiento, DespachoRealVehiculo
 from .forms import CatalogoClienteForm, TransporteForm, TransferenciaAlmacenForm, OperacionAlmacenProduccionForm
 
 
@@ -13,8 +14,13 @@ from .forms import CatalogoClienteForm, TransporteForm, TransferenciaAlmacenForm
 def dashboard(request):
     almacen = AlmacenProduccion.objects.first()
     cantidad_almacen = almacen.cantidad_actual if almacen else 0
+
+    almacen_aseguramiento = AlmacenAseguramiento.objects.first()
+    cantidad_aseguramiento = almacen_aseguramiento.cantidad_actual if almacen_aseguramiento else 0
+
     return render(request, 'combustible/dashboard.html', {
         'cantidad_almacen': cantidad_almacen,
+        'cantidad_aseguramiento': cantidad_aseguramiento,
     })
 
 
@@ -803,7 +809,7 @@ def editar_operacion_almacen(request, pk):
             if not operacion.generacion:
                 operacion.generacion = Decimal('0')
             operacion.nueva_existencia = (
-                                                     operacion.existencia + operacion.entrada_factura) - operacion.generacion - operacion.transferencia
+                                                 operacion.existencia + operacion.entrada_factura) - operacion.generacion - operacion.transferencia
             operacion.save()
             messages.success(request, 'Operación modificada correctamente.')
             return redirect('lista_operaciones_almacen')
@@ -839,6 +845,49 @@ def validar_operacion_almacen(request, pk):
     almacen.cantidad_actual = operacion.nueva_existencia
     almacen.save()
 
+    # Si la operación tiene transferencia > 0, crear registro en Almacén de Aseguramiento
+    if operacion.transferencia > 0:
+        # Obtener las transferencias confirmadas que no han sido registradas
+        transferencias_confirmadas = TransferenciaAlmacen.objects.filter(
+            estado='transferido',
+            cantidad_transferida__isnull=False
+        )
+
+        for transferencia in transferencias_confirmadas:
+            # Verificar que no exista ya un registro para esta transferencia
+            registro_existente = RegistroAlmacenAseguramiento.objects.filter(
+                solicitud=transferencia.solicitud
+            ).exists()
+
+            if not registro_existente:
+                # Crear el registro en Almacén de Aseguramiento
+                registro = RegistroAlmacenAseguramiento.objects.create(
+                    solicitud=transferencia.solicitud,
+                    fecha_hora=transferencia.solicitud.fecha_hora,
+                    cantidad_total_aprobada=transferencia.solicitud.total_general,
+                    despacho_real_total=transferencia.cantidad_transferida,
+                    estado='pendiente'
+                )
+
+                # Crear los despachos reales para cada vehículo
+                detalles_vehiculos = DetalleSolicitudVehiculo.objects.filter(
+                    detalle_solicitud__solicitud=transferencia.solicitud
+                ).select_related('transporte', 'detalle_solicitud__cliente')
+
+                for detalle_vehiculo in detalles_vehiculos:
+                    DespachoRealVehiculo.objects.create(
+                        registro=registro,
+                        detalle_vehiculo=detalle_vehiculo,
+                        despacho_real=0
+                    )
+
+                # Actualizar el saldo del Almacén de Aseguramiento
+                almacen_aseguramiento = AlmacenAseguramiento.objects.first()
+                if not almacen_aseguramiento:
+                    almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
+                almacen_aseguramiento.cantidad_actual += transferencia.cantidad_transferida
+                almacen_aseguramiento.save()
+
     messages.success(request, f'Operación #{operacion.id} validada correctamente.')
     return redirect('lista_operaciones_almacen')
 
@@ -857,3 +906,99 @@ def eliminar_operacion_almacen(request, pk):
     operacion.delete()
     messages.success(request, 'Operación eliminada correctamente.')
     return redirect('lista_operaciones_almacen')
+
+
+# Vistas para Almacén de Aseguramiento
+@login_required
+def lista_registros_aseguramiento(request):
+    if request.user.departamento not in ['admin', 'almacen', 'director', 'directivo']:
+        messages.error(request, 'No tiene permisos para ver el Almacén de Aseguramiento.')
+        return redirect('dashboard')
+
+    registros = RegistroAlmacenAseguramiento.objects.select_related('solicitud').all().order_by('-id')
+    almacen_aseguramiento = AlmacenAseguramiento.objects.first()
+    if not almacen_aseguramiento:
+        almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
+
+    puede_editar = request.user.departamento in ['admin', 'almacen']
+    hay_acciones = puede_editar and registros.filter(estado='pendiente').exists()
+
+    return render(request, 'combustible/lista_registros_aseguramiento.html', {
+        'registros': registros,
+        'almacen_aseguramiento': almacen_aseguramiento,
+        'puede_editar': puede_editar,
+        'hay_acciones': hay_acciones,
+    })
+
+
+@login_required
+def ver_registro_aseguramiento(request, pk):
+    if request.user.departamento not in ['admin', 'almacen', 'director', 'directivo']:
+        messages.error(request, 'No tiene permisos para ver este registro.')
+        return redirect('lista_registros_aseguramiento')
+
+    registro = get_object_or_404(RegistroAlmacenAseguramiento, pk=pk)
+    despachos = DespachoRealVehiculo.objects.filter(registro=registro).select_related(
+        'detalle_vehiculo__transporte',
+        'detalle_vehiculo__detalle_solicitud__cliente'
+    )
+
+    puede_editar = request.user.departamento in ['admin', 'almacen']
+
+    return render(request, 'combustible/ver_registro_aseguramiento.html', {
+        'registro': registro,
+        'despachos': despachos,
+        'puede_editar': puede_editar,
+    })
+
+
+@login_required
+def guardar_despacho_real(request, pk):
+    if request.user.departamento not in ['admin', 'almacen']:
+        messages.error(request, 'No tiene permisos para guardar despachos.')
+        return redirect('lista_registros_aseguramiento')
+
+    registro = get_object_or_404(RegistroAlmacenAseguramiento, pk=pk)
+    if registro.estado != 'pendiente':
+        messages.error(request, 'Este registro no se puede modificar.')
+        return redirect('lista_registros_aseguramiento')
+
+    if request.method == 'POST':
+        total_despacho = Decimal('0')
+        hay_error = False
+
+        for despacho in DespachoRealVehiculo.objects.filter(registro=registro):
+            campo_nombre = f'despacho_{despacho.id}'
+            valor = request.POST.get(campo_nombre, '0')
+
+            try:
+                cantidad = Decimal(valor)
+                if cantidad < 0:
+                    hay_error = True
+                    messages.error(request, 'El despacho real no puede ser negativo.')
+                    break
+
+                # Verificar que no exceda la cantidad aprobada
+                if cantidad > despacho.detalle_vehiculo.cant_abastecer:
+                    hay_error = True
+                    messages.error(request,
+                                   f'El despacho para {despacho.detalle_vehiculo.transporte.chapa} no puede exceder la cantidad aprobada ({despacho.detalle_vehiculo.cant_abastecer}).')
+                    break
+
+                despacho.despacho_real = cantidad
+                despacho.save()
+                total_despacho += cantidad
+
+            except InvalidOperation:
+                hay_error = True
+                messages.error(request, 'Cantidad inválida.')
+                break
+
+        if not hay_error:
+            registro.despacho_real_total = total_despacho
+            registro.save()
+            messages.success(request, 'Despachos guardados correctamente.')
+
+        return redirect('ver_registro_aseguramiento', pk=registro.pk)
+
+    return redirect('ver_registro_aseguramiento', pk=registro.pk)

@@ -231,3 +231,70 @@ class OperacionAlmacenProduccion(models.Model):
 
     def __str__(self):
         return f"Operación #{self.id} - {self.fecha_hora.strftime('%d/%m/%Y %H:%M')}"
+
+
+class RegistroAlmacenAseguramiento(models.Model):
+    ESTADOS_REGISTRO = [
+        ('pendiente', 'Pendiente'),
+        ('despachado', 'Despachado'),
+    ]
+
+    solicitud = models.ForeignKey(
+        ModeloSolicitud,
+        on_delete=models.CASCADE,
+        related_name='registros_aseguramiento',
+        verbose_name='Solicitud'
+    )
+    fecha_hora = models.DateTimeField(verbose_name='Fecha y Hora')
+    cantidad_total_aprobada = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        verbose_name='Cantidad Total Aprobada'
+    )
+    despacho_real_total = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Despacho Real Total'
+    )
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADOS_REGISTRO,
+        default='pendiente',
+        verbose_name='Estado'
+    )
+
+    class Meta:
+        verbose_name = 'Registro de Almacén de Aseguramiento'
+        verbose_name_plural = 'Registros de Almacén de Aseguramiento'
+        ordering = ['-fecha_hora']
+
+    def __str__(self):
+        return f"Registro #{self.id} - Solicitud #{self.solicitud.id}"
+
+
+class DespachoRealVehiculo(models.Model):
+    registro = models.ForeignKey(
+        RegistroAlmacenAseguramiento,
+        on_delete=models.CASCADE,
+        related_name='despachos',
+        verbose_name='Registro'
+    )
+    detalle_vehiculo = models.ForeignKey(
+        DetalleSolicitudVehiculo,
+        on_delete=models.CASCADE,
+        verbose_name='Vehículo de Solicitud'
+    )
+    despacho_real = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        verbose_name='Despacho Real'
+    )
+
+    class Meta:
+        verbose_name = 'Despacho Real por Vehículo'
+        verbose_name_plural = 'Despachos Reales por Vehículos'
+
+    def __str__(self):
+        return f"{self.detalle_vehiculo.transporte.chapa} - {self.despacho_real}"
