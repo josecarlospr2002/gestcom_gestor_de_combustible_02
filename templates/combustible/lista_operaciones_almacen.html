@@ -64,6 +64,9 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                     <th>Generación</th>
                     <th>Transferencia</th>
                     <th>Nueva Existencia</th>
+                    {% if hay_acciones %}
+                    <th>Acciones</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -74,11 +77,28 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                     <td>{{ operacion.entrada_factura }}</td>
                     <td>{{ operacion.generacion }}</td>
                     <td>{{ operacion.transferencia }}</td>
-                    <td><strong>{{ operacion.nueva_existencia }}</strong></td>
+                    <td>{{ operacion.nueva_existencia }}</td>
+                    {% if hay_acciones %}
+                    <td onclick="event.stopPropagation();">
+                        {% if operacion.estado == 'pendiente' %}
+                            <a href="{% url 'editar_operacion_almacen' operacion.id %}" class="btn btn-primary btn-sm" title="Modificar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="#" class="btn btn-success btn-sm" title="Validar Operación"
+                               onclick="confirmarValidar('{% url 'validar_operacion_almacen' operacion.id %}'); return false;">
+                                <i class="bi bi-check-circle"></i>
+                            </a>
+                            <a href="#" class="btn btn-danger btn-sm" title="Eliminar"
+                               onclick="confirmarEliminar('{% url 'eliminar_operacion_almacen' operacion.id %}'); return false;">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        {% endif %}
+                    </td>
+                    {% endif %}
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-5">
+                    <td colspan="{% if hay_acciones %}7{% else %}6{% endif %}" class="text-center text-muted py-5">
                         <i class="bi bi-inbox" style="font-size: 3rem;"></i>
                         <p class="mt-3 fs-5">No se encontraron operaciones.</p>
                     </td>
@@ -92,4 +112,72 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
 <div class="mt-3 text-end contador">
     <strong>Total de operaciones: {{ operaciones|length }}</strong>
 </div>
+
+<!-- Modal Confirmar Validación -->
+<div class="modal fade" id="confirmarValidar" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #198754, #157347);">
+                <h5 class="modal-title">
+                    <i class="bi bi-check-circle-fill"></i> Confirmar Validación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+                <p class="mt-3 fs-5">¿Está seguro de validar esta operación?</p>
+                <small class="text-muted">Una vez validada, no podrá modificarse ni eliminarse.</small>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <a href="#" id="confirmarValidarBtn" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Validar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Eliminación -->
+<div class="modal fade" id="confirmarEliminar" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #dc3545, #6f42c1);">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-trash text-danger" style="font-size: 3rem;"></i>
+                <p class="mt-3 fs-5">¿Está seguro de eliminar esta operación?</p>
+                <small class="text-muted">Esta acción no se puede deshacer.</small>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+                <a href="#" id="confirmarEliminarBtn" class="btn btn-danger">
+                    <i class="bi bi-trash"></i> Eliminar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmarValidar(url) {
+    document.getElementById('confirmarValidarBtn').href = url;
+    var modal = new bootstrap.Modal(document.getElementById('confirmarValidar'));
+    modal.show();
+}
+
+function confirmarEliminar(url) {
+    document.getElementById('confirmarEliminarBtn').href = url;
+    var modal = new bootstrap.Modal(document.getElementById('confirmarEliminar'));
+    modal.show();
+}
+</script>
 {% endblock %}

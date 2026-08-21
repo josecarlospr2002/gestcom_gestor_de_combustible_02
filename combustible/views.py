@@ -757,6 +757,11 @@ def crear_operacion_almacen(request):
         form = OperacionAlmacenProduccionForm(request.POST)
         if form.is_valid():
             operacion = form.save(commit=False)
+            # Si están vacíos, poner 0
+            if not operacion.entrada_factura:
+                operacion.entrada_factura = Decimal('0')
+            if not operacion.generacion:
+                operacion.generacion = Decimal('0')
             operacion.existencia = existencia
             operacion.transferencia = transferencia
             operacion.nueva_existencia = (existencia + operacion.entrada_factura) - operacion.generacion - transferencia
@@ -792,7 +797,13 @@ def editar_operacion_almacen(request, pk):
         form = OperacionAlmacenProduccionForm(request.POST, instance=operacion)
         if form.is_valid():
             operacion = form.save(commit=False)
-            operacion.nueva_existencia = (operacion.existencia + operacion.entrada_factura) - operacion.generacion - operacion.transferencia
+            # Si están vacíos, poner 0
+            if not operacion.entrada_factura:
+                operacion.entrada_factura = Decimal('0')
+            if not operacion.generacion:
+                operacion.generacion = Decimal('0')
+            operacion.nueva_existencia = (
+                                                     operacion.existencia + operacion.entrada_factura) - operacion.generacion - operacion.transferencia
             operacion.save()
             messages.success(request, 'Operación modificada correctamente.')
             return redirect('lista_operaciones_almacen')

@@ -185,13 +185,11 @@ class OperacionAlmacenProduccionForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': '0.00',
                 'step': '0.01',
-                'min': '0',
             }),
             'generacion': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': '0.00',
                 'step': '0.01',
-                'min': '0',
             }),
         }
         labels = {
@@ -202,6 +200,10 @@ class OperacionAlmacenProduccionForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Hacer opcionales los campos
+        self.fields['entrada_factura'].required = False
+        self.fields['generacion'].required = False
+
         if self.instance and self.instance.pk and self.instance.fecha_hora:
             # Formatear la fecha para el input datetime-local
             fecha = self.instance.fecha_hora
