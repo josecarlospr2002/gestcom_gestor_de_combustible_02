@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud, DetalleSolicitudVehiculo, \
     AlmacenProduccion, AlmacenAseguramiento, TransferenciaAlmacen, OperacionAlmacenProduccion, \
-    RegistroAlmacenAseguramiento, DespachoRealVehiculo
+    RegistroAlmacenAseguramiento, DespachoRealVehiculo, ResultadoAlmacenAseguramiento
 from .forms import CatalogoClienteForm, TransporteForm, TransferenciaAlmacenForm, OperacionAlmacenProduccionForm
 
 
@@ -965,9 +965,13 @@ def guardar_despacho_real(request, pk):
 
     if request.method == 'POST':
         total_despacho = Decimal('0')
+        total_consumo_sobrante = Decimal('0')
+        total_venta_sobrante = Decimal('0')
         hay_error = False
 
-        for despacho in DespachoRealVehiculo.objects.filter(registro=registro):
+        for despacho in DespachoRealVehiculo.objects.filter(registro=registro).select_related(
+            'detalle_vehiculo__detalle_solicitud__cliente'
+        ):
             campo_nombre = f'despacho_{despacho.id}'
             valor = request.POST.get(campo_nombre, '0')
 
@@ -989,16 +993,61 @@ def guardar_despacho_real(request, pk):
                 despacho.save()
                 total_despacho += cantidad
 
+                # Calcular sobrante por clasificación
+                sobrante = despacho.detalle_vehiculo.cant_abastecer - cantidad
+                clasificacion = despacho.detalle_vehiculo.detalle_solicitud.cliente.clasificacion
+
+                if clasificacion == 'venta':
+                    total_venta_sobrante += sobrante
+                else:
+                    total_consumo_sobrante += sobrante
+
             except InvalidOperation:
                 hay_error = True
                 messages.error(request, 'Cantidad inválida.')
                 break
 
         if not hay_error:
+            total_existente = total_consumo_sobrante + total_venta_sobrante
+
             registro.despacho_real_total = total_despacho
+            registro.total_consumo = total_consumo_sobrante
+            registro.total_venta = total_venta_sobrante
+            registro.total_existente = total_existente
+            registro.estado = 'despachado'
             registro.save()
+
+            # Crear registro de resultado
+            ResultadoAlmacenAseguramiento.objects.create(
+                registro=registro,
+                fecha_hora=registro.fecha_hora,
+                total_consumo=total_consumo_sobrante,
+                total_venta=total_venta_sobrante,
+                total_existente=total_existente
+            )
+
+            # Actualizar el saldo del Almacén de Aseguramiento
+            almacen_aseguramiento = AlmacenAseguramiento.objects.first()
+            if not almacen_aseguramiento:
+                almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
+            almacen_aseguramiento.cantidad_actual = total_existente
+            almacen_aseguramiento.save()
+
             messages.success(request, 'Despachos guardados correctamente.')
 
         return redirect('ver_registro_aseguramiento', pk=registro.pk)
 
     return redirect('ver_registro_aseguramiento', pk=registro.pk)
+
+
+@login_required
+def lista_resultados_aseguramiento(request):
+    if request.user.departamento not in ['admin', 'almacen', 'director', 'directivo']:
+        messages.error(request, 'No tiene permisos para ver los resultados.')
+        return redirect('dashboard')
+
+    resultados = ResultadoAlmacenAseguramiento.objects.all().order_by('-id')
+
+    return render(request, 'combustible/lista_resultados_aseguramiento.html', {
+        'resultados': resultados,
+    })

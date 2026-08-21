@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud, DetalleSolicitudVehiculo, \
     AlmacenProduccion, AlmacenAseguramiento, TransferenciaAlmacen, OperacionAlmacenProduccion, \
-    RegistroAlmacenAseguramiento, DespachoRealVehiculo
+    RegistroAlmacenAseguramiento, DespachoRealVehiculo, ResultadoAlmacenAseguramiento
 
 
 @admin.register(CatalogoCliente)
@@ -61,7 +61,8 @@ class OperacionAlmacenProduccionAdmin(admin.ModelAdmin):
 
 @admin.register(RegistroAlmacenAseguramiento)
 class RegistroAlmacenAseguramientoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'solicitud', 'fecha_hora', 'cantidad_total_aprobada', 'despacho_real_total', 'estado')
+    list_display = ('id', 'solicitud', 'fecha_hora', 'cantidad_total_aprobada', 'despacho_real_total',
+                    'total_consumo', 'total_venta', 'total_existente', 'estado')
     list_filter = ('estado', 'fecha_hora')
     search_fields = ('solicitud__id',)
 
@@ -70,3 +71,10 @@ class RegistroAlmacenAseguramientoAdmin(admin.ModelAdmin):
 class DespachoRealVehiculoAdmin(admin.ModelAdmin):
     list_display = ('registro', 'detalle_vehiculo', 'despacho_real')
     search_fields = ('detalle_vehiculo__transporte__chapa', 'registro__solicitud__id')
+
+
+@admin.register(ResultadoAlmacenAseguramiento)
+class ResultadoAlmacenAseguramientoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'registro', 'fecha_hora', 'total_consumo', 'total_venta', 'total_existente')
+    list_filter = ('fecha_hora',)
+    search_fields = ('registro__solicitud__id',)

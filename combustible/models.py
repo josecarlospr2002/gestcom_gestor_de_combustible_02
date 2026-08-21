@@ -257,6 +257,24 @@ class RegistroAlmacenAseguramiento(models.Model):
         default=0,
         verbose_name='Despacho Real Total'
     )
+    total_consumo = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Total de Consumo Sobrante'
+    )
+    total_venta = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Total de Venta Sobrante'
+    )
+    total_existente = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Total Existente'
+    )
     estado = models.CharField(
         max_length=20,
         choices=ESTADOS_REGISTRO,
@@ -298,3 +316,39 @@ class DespachoRealVehiculo(models.Model):
 
     def __str__(self):
         return f"{self.detalle_vehiculo.transporte.chapa} - {self.despacho_real}"
+
+
+class ResultadoAlmacenAseguramiento(models.Model):
+    registro = models.OneToOneField(
+        RegistroAlmacenAseguramiento,
+        on_delete=models.CASCADE,
+        related_name='resultado',
+        verbose_name='Registro'
+    )
+    fecha_hora = models.DateTimeField(verbose_name='Fecha y Hora')
+    total_consumo = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Total de Consumo'
+    )
+    total_venta = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Total de Venta'
+    )
+    total_existente = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Total Existente'
+    )
+
+    class Meta:
+        verbose_name = 'Resultado de Almacén de Aseguramiento'
+        verbose_name_plural = 'Resultados de Almacén de Aseguramiento'
+        ordering = ['-fecha_hora']
+
+    def __str__(self):
+        return f"Resultado #{self.id} - {self.fecha_hora.strftime('%d/%m/%Y %H:%M')}"
