@@ -45,8 +45,14 @@ urlpatterns = [
 
     # URLs de Resultados del Almacén de Aseguramiento
     path('resultados-aseguramiento/', views.lista_resultados_aseguramiento, name='lista_resultados_aseguramiento'),
-    path('resultados-aseguramiento/insertar/', views.insertar_cantidad_aseguramiento, name='insertar_cantidad_aseguramiento'),
-    path('resultados-aseguramiento/editar/<int:pk>/', views.editar_cantidad_aseguramiento, name='editar_cantidad_aseguramiento'),
-    path('resultados-aseguramiento/confirmar/<int:pk>/', views.confirmar_cantidad_aseguramiento, name='confirmar_cantidad_aseguramiento'),
-    path('resultados-aseguramiento/eliminar/<int:pk>/', views.eliminar_cantidad_aseguramiento, name='eliminar_cantidad_aseguramiento'),
+    path('resultados-aseguramiento/insertar/', views.insertar_cantidad_aseguramiento,
+         name='insertar_cantidad_aseguramiento'),
+    path('resultados-aseguramiento/editar/<int:pk>/', views.editar_cantidad_aseguramiento,
+         name='editar_cantidad_aseguramiento'),
+    path('resultados-aseguramiento/confirmar/<int:pk>/', views.confirmar_cantidad_aseguramiento,
+         name='confirmar_cantidad_aseguramiento'),
+    path('resultados-aseguramiento/eliminar/<int:pk>/', views.eliminar_cantidad_aseguramiento,
+         name='eliminar_cantidad_aseguramiento'),
+    path('almacen-aseguramiento/confirmar/<int:pk>/', views.confirmar_registro_aseguramiento,
+         name='confirmar_registro_aseguramiento'),
 ]

@@ -922,7 +922,7 @@ def lista_registros_aseguramiento(request):
         almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
 
     puede_editar = request.user.departamento in ['admin', 'almacen']
-    hay_acciones = puede_editar and registros.filter(estado='pendiente').exists()
+    hay_acciones = puede_editar and registros.filter(estado='borrador').exists()
 
     return render(request, 'combustible/lista_registros_aseguramiento.html', {
         'registros': registros,
@@ -946,10 +946,24 @@ def ver_registro_aseguramiento(request, pk):
 
     puede_editar = request.user.departamento in ['admin', 'almacen']
 
+    # Verificar si se quiere modificar (viene del botón Modificar)
+    modificar = request.GET.get('modificar', False)
+
+    # Determinar si mostrar formulario editable
+    mostrar_formulario = False
+    if puede_editar:
+        if registro.estado == 'pendiente':
+            # Pendiente: siempre editable (para insertar despachos)
+            mostrar_formulario = True
+        elif registro.estado == 'borrador' and modificar:
+            # Borrador: solo editable si viene del botón Modificar
+            mostrar_formulario = True
+
     return render(request, 'combustible/ver_registro_aseguramiento.html', {
         'registro': registro,
         'despachos': despachos,
         'puede_editar': puede_editar,
+        'mostrar_formulario': mostrar_formulario,
     })
 
 
@@ -960,7 +974,7 @@ def guardar_despacho_real(request, pk):
         return redirect('lista_registros_aseguramiento')
 
     registro = get_object_or_404(RegistroAlmacenAseguramiento, pk=pk)
-    if registro.estado != 'pendiente':
+    if registro.estado not in ['pendiente', 'borrador']:
         messages.error(request, 'Este registro no se puede modificar.')
         return redirect('lista_registros_aseguramiento')
 
@@ -969,7 +983,7 @@ def guardar_despacho_real(request, pk):
         total_consumo_sobrante = Decimal('0')
         total_venta_sobrante = Decimal('0')
         hay_error = False
-        error_despacho_id = None  # Para guardar el ID del despacho con error
+        error_despacho_id = None
 
         for despacho in DespachoRealVehiculo.objects.filter(registro=registro).select_related(
                 'detalle_vehiculo__detalle_solicitud__cliente'
@@ -985,7 +999,6 @@ def guardar_despacho_real(request, pk):
                     messages.error(request, 'El despacho real no puede ser negativo.')
                     break
 
-                # Verificar que no exceda la cantidad aprobada
                 if cantidad > despacho.detalle_vehiculo.cant_abastecer:
                     hay_error = True
                     error_despacho_id = despacho.id
@@ -997,7 +1010,6 @@ def guardar_despacho_real(request, pk):
                 despacho.save()
                 total_despacho += cantidad
 
-                # Calcular sobrante por clasificación
                 sobrante = despacho.detalle_vehiculo.cant_abastecer - cantidad
                 clasificacion = despacho.detalle_vehiculo.detalle_solicitud.cliente.clasificacion
 
@@ -1019,37 +1031,21 @@ def guardar_despacho_real(request, pk):
             registro.total_consumo = total_consumo_sobrante
             registro.total_venta = total_venta_sobrante
             registro.total_existente = total_existente
-            registro.estado = 'despachado'
+            registro.estado = 'borrador'  # Se mantiene como borrador
             registro.save()
 
-            # Crear registro de resultado
-            ResultadoAlmacenAseguramiento.objects.create(
-                registro=registro,
-                fecha_hora=registro.fecha_hora,
-                total_consumo=total_consumo_sobrante,
-                total_venta=total_venta_sobrante,
-                total_existente=total_existente,
-                estado='confirmado'
-            )
+            # NO se crea ResultadoAlmacenAseguramiento
+            # NO se actualiza el saldo del Almacén
 
-            # Actualizar el saldo del Almacén de Aseguramiento
-            almacen_aseguramiento = AlmacenAseguramiento.objects.first()
-            if not almacen_aseguramiento:
-                almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
-            almacen_aseguramiento.cantidad_actual = total_existente
-            almacen_aseguramiento.save()
-
-            messages.success(request, 'Despachos guardados correctamente.')
+            messages.success(request, 'Despachos guardados correctamente. Pendiente de confirmar.')
             return redirect('lista_registros_aseguramiento')
         else:
-            # Si hay error, volver a renderizar la página con los valores ingresados
             despachos = DespachoRealVehiculo.objects.filter(registro=registro).select_related(
                 'detalle_vehiculo__transporte',
                 'detalle_vehiculo__detalle_solicitud__cliente'
             )
             puede_editar = request.user.departamento in ['admin', 'almacen']
 
-            # Pasar los valores del POST para mantenerlos en el template
             valores_post = {}
             for despacho in despachos:
                 campo_nombre = f'despacho_{despacho.id}'
@@ -1061,6 +1057,7 @@ def guardar_despacho_real(request, pk):
                 'puede_editar': puede_editar,
                 'valores_post': valores_post,
                 'error_despacho_id': error_despacho_id,
+                'mostrar_formulario': True,
             })
 
     return redirect('lista_registros_aseguramiento')
@@ -1187,3 +1184,39 @@ def eliminar_cantidad_aseguramiento(request, pk):
     resultado.delete()
     messages.success(request, 'Cantidad eliminada correctamente.')
     return redirect('lista_resultados_aseguramiento')
+
+
+@login_required
+def confirmar_registro_aseguramiento(request, pk):
+    if request.user.departamento not in ['admin', 'almacen']:
+        messages.error(request, 'No tiene permisos para confirmar registros.')
+        return redirect('lista_registros_aseguramiento')
+
+    registro = get_object_or_404(RegistroAlmacenAseguramiento, pk=pk)
+    if registro.estado != 'borrador':  # Cambiado de 'pendiente' a 'borrador'
+        messages.error(request, 'Este registro no se puede confirmar.')
+        return redirect('lista_registros_aseguramiento')
+
+    # Cambiar estado a despachado
+    registro.estado = 'despachado'
+    registro.save()
+
+    # Crear registro de resultado automáticamente
+    ResultadoAlmacenAseguramiento.objects.create(
+        registro=registro,
+        fecha_hora=registro.fecha_hora,
+        total_consumo=registro.total_consumo,
+        total_venta=registro.total_venta,
+        total_existente=registro.total_existente,
+        estado='confirmado'
+    )
+
+    # Actualizar el saldo del Almacén de Aseguramiento
+    almacen_aseguramiento = AlmacenAseguramiento.objects.first()
+    if not almacen_aseguramiento:
+        almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
+    almacen_aseguramiento.cantidad_actual = registro.total_existente
+    almacen_aseguramiento.save()
+
+    messages.success(request, 'Registro confirmado correctamente.')
+    return redirect('lista_registros_aseguramiento')

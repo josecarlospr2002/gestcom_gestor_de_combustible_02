@@ -80,6 +80,8 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
             <p><strong>Estado:</strong>
                 {% if registro.estado == 'pendiente' %}
                     <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Pendiente</span>
+                {% elif registro.estado == 'borrador' %}
+                    <span class="badge bg-info text-dark"><i class="bi bi-pencil"></i> Borrador</span>
                 {% else %}
                     <span class="badge bg-success"><i class="bi bi-check-circle"></i> Despachado</span>
                 {% endif %}
@@ -88,7 +90,7 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
     </div>
 </div>
 
-{% if registro.estado == 'pendiente' and puede_editar %}
+{% if mostrar_formulario %}
 <form method="post" action="{% url 'guardar_despacho_real' registro.id %}" id="form-despacho">
     {% csrf_token %}
     <div class="table-container">
@@ -110,8 +112,9 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                         <td>{{ despacho.detalle_vehiculo.cant_abastecer }}</td>
                         <td>
                             <input type="number" name="despacho_{{ despacho.id }}"
-                                   class="form-control form-control-sm {% if error_despacho_id == despacho.id %}input-error{% endif %}"
-                                   value="{% for key, val in valores_post.items %}{% if key == despacho.id %}{{ val }}{% endif %}{% endfor %}"
+                                   class="form-control form-control-sm input-despacho {% if error_despacho_id == despacho.id %}input-error{% endif %}"
+                                   data-valor-guardado="{{ despacho.despacho_real|stringformat:'.2f' }}"
+                                   data-valor-post="{% for key, val in valores_post.items %}{% if key == despacho.id %}{{ val }}{% endif %}{% endfor %}"
                                    placeholder="0.00" step="0.01" min="0"
                                    max="{{ despacho.detalle_vehiculo.cant_abastecer }}">
                         </td>
@@ -145,8 +148,35 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var inputs = document.querySelectorAll('input[type="number"][name^="despacho_"]');
+    var inputs = document.querySelectorAll('.input-despacho');
     var cantidadAprobada = parseFloat("{{ registro.cantidad_total_aprobada }}".replace(',', '.')) || 0;
+    var estadoRegistro = "{{ registro.estado }}";
+    var hayError = {% if error_despacho_id %}true{% else %}false{% endif %};
+
+    // Cargar valores según el caso
+    inputs.forEach(function(input) {
+        var valorPost = input.dataset.valorPost || '';
+        var valorGuardado = input.dataset.valorGuardado || '';
+
+        if (hayError) {
+            // Caso 3: Error de validación - usar valores del POST
+            if (valorPost !== '' && valorPost !== '0.00') {
+                input.value = valorPost;
+            } else {
+                input.value = '';
+            }
+        } else if (estadoRegistro === 'borrador') {
+            // Caso 2: Modificación - usar valores de la BD
+            if (valorGuardado && valorGuardado !== '' && valorGuardado !== '0.00') {
+                input.value = parseFloat(valorGuardado.replace(',', '.'));
+            } else {
+                input.value = '';
+            }
+        } else {
+            // Caso 1: Registro nuevo (pendiente) - vacío
+            input.value = '';
+        }
+    });
 
     function calcularTotales() {
         var total = 0;

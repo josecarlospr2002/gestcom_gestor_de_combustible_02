@@ -236,6 +236,7 @@ class OperacionAlmacenProduccion(models.Model):
 class RegistroAlmacenAseguramiento(models.Model):
     ESTADOS_REGISTRO = [
         ('pendiente', 'Pendiente'),
+        ('borrador', 'Borrador'),
         ('despachado', 'Despachado'),
     ]
 
