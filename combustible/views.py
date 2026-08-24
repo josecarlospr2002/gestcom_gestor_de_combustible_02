@@ -969,23 +969,26 @@ def guardar_despacho_real(request, pk):
         total_consumo_sobrante = Decimal('0')
         total_venta_sobrante = Decimal('0')
         hay_error = False
+        error_despacho_id = None  # Para guardar el ID del despacho con error
 
         for despacho in DespachoRealVehiculo.objects.filter(registro=registro).select_related(
                 'detalle_vehiculo__detalle_solicitud__cliente'
         ):
             campo_nombre = f'despacho_{despacho.id}'
-            valor = request.POST.get(campo_nombre, '0')
+            valor = request.POST.get(campo_nombre, '0') or '0'
 
             try:
                 cantidad = Decimal(valor)
                 if cantidad < 0:
                     hay_error = True
+                    error_despacho_id = despacho.id
                     messages.error(request, 'El despacho real no puede ser negativo.')
                     break
 
                 # Verificar que no exceda la cantidad aprobada
                 if cantidad > despacho.detalle_vehiculo.cant_abastecer:
                     hay_error = True
+                    error_despacho_id = despacho.id
                     messages.error(request,
                                    f'El despacho para {despacho.detalle_vehiculo.transporte.chapa} no puede exceder la cantidad aprobada ({despacho.detalle_vehiculo.cant_abastecer}).')
                     break
@@ -1005,6 +1008,7 @@ def guardar_despacho_real(request, pk):
 
             except InvalidOperation:
                 hay_error = True
+                error_despacho_id = despacho.id
                 messages.error(request, 'Cantidad inválida.')
                 break
 
@@ -1026,7 +1030,6 @@ def guardar_despacho_real(request, pk):
                 total_venta=total_venta_sobrante,
                 total_existente=total_existente,
                 estado='confirmado'
-
             )
 
             # Actualizar el saldo del Almacén de Aseguramiento
@@ -1037,10 +1040,30 @@ def guardar_despacho_real(request, pk):
             almacen_aseguramiento.save()
 
             messages.success(request, 'Despachos guardados correctamente.')
+            return redirect('lista_registros_aseguramiento')
+        else:
+            # Si hay error, volver a renderizar la página con los valores ingresados
+            despachos = DespachoRealVehiculo.objects.filter(registro=registro).select_related(
+                'detalle_vehiculo__transporte',
+                'detalle_vehiculo__detalle_solicitud__cliente'
+            )
+            puede_editar = request.user.departamento in ['admin', 'almacen']
 
-        return redirect('ver_registro_aseguramiento', pk=registro.pk)
+            # Pasar los valores del POST para mantenerlos en el template
+            valores_post = {}
+            for despacho in despachos:
+                campo_nombre = f'despacho_{despacho.id}'
+                valores_post[despacho.id] = request.POST.get(campo_nombre, '0')
 
-    return redirect('ver_registro_aseguramiento', pk=registro.pk)
+            return render(request, 'combustible/ver_registro_aseguramiento.html', {
+                'registro': registro,
+                'despachos': despachos,
+                'puede_editar': puede_editar,
+                'valores_post': valores_post,
+                'error_despacho_id': error_despacho_id,
+            })
+
+    return redirect('lista_registros_aseguramiento')
 
 
 @login_required
