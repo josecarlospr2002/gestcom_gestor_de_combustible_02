@@ -319,6 +319,11 @@ class DespachoRealVehiculo(models.Model):
 
 
 class ResultadoAlmacenAseguramiento(models.Model):
+    ESTADOS_RESULTADO = [
+        ('pendiente', 'Pendiente'),
+        ('confirmado', 'Confirmado'),
+    ]
+
     registro = models.OneToOneField(
         RegistroAlmacenAseguramiento,
         on_delete=models.CASCADE,
@@ -350,6 +355,12 @@ class ResultadoAlmacenAseguramiento(models.Model):
         blank=True,
         null=True,
         verbose_name='Descripción'
+    )
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADOS_RESULTADO,
+        default='pendiente',
+        verbose_name='Estado'
     )
 
     class Meta:

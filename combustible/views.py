@@ -971,7 +971,7 @@ def guardar_despacho_real(request, pk):
         hay_error = False
 
         for despacho in DespachoRealVehiculo.objects.filter(registro=registro).select_related(
-            'detalle_vehiculo__detalle_solicitud__cliente'
+                'detalle_vehiculo__detalle_solicitud__cliente'
         ):
             campo_nombre = f'despacho_{despacho.id}'
             valor = request.POST.get(campo_nombre, '0')
@@ -1024,7 +1024,9 @@ def guardar_despacho_real(request, pk):
                 fecha_hora=registro.fecha_hora,
                 total_consumo=total_consumo_sobrante,
                 total_venta=total_venta_sobrante,
-                total_existente=total_existente
+                total_existente=total_existente,
+                estado='confirmado'
+
             )
 
             # Actualizar el saldo del Almacén de Aseguramiento
@@ -1049,10 +1051,12 @@ def lista_resultados_aseguramiento(request):
 
     resultados = ResultadoAlmacenAseguramiento.objects.all().order_by('-id')
     puede_editar = request.user.departamento in ['admin', 'almacen']
+    hay_acciones = puede_editar and resultados.filter(estado='pendiente').exists()
 
     return render(request, 'combustible/lista_resultados_aseguramiento.html', {
         'resultados': resultados,
         'puede_editar': puede_editar,
+        'hay_acciones': hay_acciones,
     })
 
 
@@ -1071,16 +1075,10 @@ def insertar_cantidad_aseguramiento(request):
             resultado.total_venta = resultado.total_venta or Decimal('0')
             resultado.total_existente = resultado.total_consumo + resultado.total_venta
             resultado.registro = None  # Es un registro manual
+            resultado.estado = 'pendiente'
             resultado.save()
 
-            # Actualizar el saldo del Almacén de Aseguramiento
-            almacen_aseguramiento = AlmacenAseguramiento.objects.first()
-            if not almacen_aseguramiento:
-                almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
-            almacen_aseguramiento.cantidad_actual = resultado.total_existente
-            almacen_aseguramiento.save()
-
-            messages.success(request, 'Cantidad insertada correctamente.')
+            messages.success(request, 'Cantidad guardada correctamente. Pendiente de confirmar.')
             return redirect('lista_resultados_aseguramiento')
         else:
             messages.error(request, 'Por favor, corrija los errores señalados.')
@@ -1090,3 +1088,79 @@ def insertar_cantidad_aseguramiento(request):
     return render(request, 'combustible/insertar_cantidad_aseguramiento.html', {
         'form': form,
     })
+
+
+@login_required
+def editar_cantidad_aseguramiento(request, pk):
+    if request.user.departamento not in ['admin', 'almacen']:
+        messages.error(request, 'No tiene permisos para modificar cantidades.')
+        return redirect('lista_resultados_aseguramiento')
+
+    resultado = get_object_or_404(ResultadoAlmacenAseguramiento, pk=pk)
+    if resultado.estado != 'pendiente':
+        messages.error(request, 'Este registro no se puede modificar.')
+        return redirect('lista_resultados_aseguramiento')
+
+    if request.method == 'POST':
+        form = ResultadoAlmacenAseguramientoForm(request.POST, instance=resultado)
+        if form.is_valid():
+            resultado = form.save(commit=False)
+            # Recalcular total existente
+            resultado.total_consumo = resultado.total_consumo or Decimal('0')
+            resultado.total_venta = resultado.total_venta or Decimal('0')
+            resultado.total_existente = resultado.total_consumo + resultado.total_venta
+            resultado.estado = 'pendiente'
+            resultado.save()
+
+            messages.success(request, 'Cantidad modificada correctamente. Pendiente de confirmar.')
+            return redirect('lista_resultados_aseguramiento')
+        else:
+            messages.error(request, 'Por favor, corrija los errores señalados.')
+    else:
+        form = ResultadoAlmacenAseguramientoForm(instance=resultado)
+
+    return render(request, 'combustible/editar_cantidad_aseguramiento.html', {
+        'form': form,
+        'resultado': resultado,
+    })
+
+
+@login_required
+def confirmar_cantidad_aseguramiento(request, pk):
+    if request.user.departamento not in ['admin', 'almacen']:
+        messages.error(request, 'No tiene permisos para confirmar cantidades.')
+        return redirect('lista_resultados_aseguramiento')
+
+    resultado = get_object_or_404(ResultadoAlmacenAseguramiento, pk=pk)
+    if resultado.estado != 'pendiente':
+        messages.error(request, 'Este registro no se puede confirmar.')
+        return redirect('lista_resultados_aseguramiento')
+
+    resultado.estado = 'confirmado'
+    resultado.save()
+
+    # Actualizar el saldo del Almacén de Aseguramiento
+    almacen_aseguramiento = AlmacenAseguramiento.objects.first()
+    if not almacen_aseguramiento:
+        almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
+    almacen_aseguramiento.cantidad_actual = resultado.total_existente
+    almacen_aseguramiento.save()
+
+    messages.success(request, 'Cantidad confirmada correctamente.')
+    return redirect('lista_resultados_aseguramiento')
+
+
+@login_required
+def eliminar_cantidad_aseguramiento(request, pk):
+    if request.user.departamento not in ['admin', 'almacen']:
+        messages.error(request, 'No tiene permisos para eliminar cantidades.')
+        return redirect('lista_resultados_aseguramiento')
+
+    resultado = get_object_or_404(ResultadoAlmacenAseguramiento, pk=pk)
+    if resultado.estado != 'pendiente':
+        messages.error(request, 'Este registro no se puede eliminar.')
+        return redirect('lista_resultados_aseguramiento')
+
+    resultado.delete()
+    messages.success(request, 'Cantidad eliminada correctamente.')
+    return redirect('lista_resultados_aseguramiento')

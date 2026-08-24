@@ -1,5 +1,6 @@
 from django import forms
 from django.core.validators import MinValueValidator
+from decimal import Decimal
 from .models import CatalogoCliente, Transporte, ModeloSolicitud, TransferenciaAlmacen, OperacionAlmacenProduccion, \
     ResultadoAlmacenAseguramiento
 from django.utils import timezone
@@ -275,8 +276,10 @@ class ResultadoAlmacenAseguramientoForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Hacer opcional la descripción
+        # Hacer opcionales los campos
         self.fields['descripcion'].required = False
+        self.fields['total_consumo'].required = False
+        self.fields['total_venta'].required = False
 
         # Establecer fecha actual por defecto
         if not self.instance.pk:
@@ -294,12 +297,16 @@ class ResultadoAlmacenAseguramientoForm(forms.ModelForm):
 
     def clean_total_consumo(self):
         total_consumo = self.cleaned_data.get('total_consumo')
-        if total_consumo is not None and total_consumo < 0:
+        if total_consumo is None or total_consumo == '':
+            return Decimal('0')
+        if total_consumo < 0:
             raise forms.ValidationError('El total de consumo no puede ser negativo.')
         return total_consumo
 
     def clean_total_venta(self):
         total_venta = self.cleaned_data.get('total_venta')
-        if total_venta is not None and total_venta < 0:
+        if total_venta is None or total_venta == '':
+            return Decimal('0')
+        if total_venta < 0:
             raise forms.ValidationError('El total de venta no puede ser negativo.')
         return total_venta
