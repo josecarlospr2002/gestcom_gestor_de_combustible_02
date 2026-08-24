@@ -323,7 +323,9 @@ class ResultadoAlmacenAseguramiento(models.Model):
         RegistroAlmacenAseguramiento,
         on_delete=models.CASCADE,
         related_name='resultado',
-        verbose_name='Registro'
+        verbose_name='Registro',
+        null=True,
+        blank=True
     )
     fecha_hora = models.DateTimeField(verbose_name='Fecha y Hora')
     total_consumo = models.DecimalField(
@@ -343,6 +345,11 @@ class ResultadoAlmacenAseguramiento(models.Model):
         decimal_places=2,
         default=0,
         verbose_name='Total Existente'
+    )
+    descripcion = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Descripción'
     )
 
     class Meta:

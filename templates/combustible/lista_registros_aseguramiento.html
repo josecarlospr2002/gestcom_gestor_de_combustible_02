@@ -55,18 +55,34 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
             <thead>
                 <tr>
                     <th>Fecha / Hora</th>
-                    <th>Solicitud</th>
                     <th>Cantidad Aprobada</th>
                     <th>Despacho Real</th>
+                    <th>Estado</th>
                 </tr>
             </thead>
             <tbody>
                 {% for registro in registros %}
                 <tr class="fila-clicable" onclick="window.location.href='{% url 'ver_registro_aseguramiento' registro.id %}'">
                     <td>{{ registro.fecha_hora|date:"d/m/Y H:i" }}</td>
-                    <td>#{{ registro.solicitud.id }}</td>
                     <td>{{ registro.cantidad_total_aprobada }}</td>
-                    <td>{{ registro.despacho_real_total }}</td>
+                    <td>
+                        {% if registro.estado == 'pendiente' %}
+                            0.00
+                        {% else %}
+                            {{ registro.despacho_real_total }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if registro.estado == 'pendiente' %}
+                            <span class="badge bg-warning text-dark">
+                                <i class="bi bi-clock"></i> Pendiente
+                            </span>
+                        {% elif registro.estado == 'despachado' %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle"></i> Despachado
+                            </span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>

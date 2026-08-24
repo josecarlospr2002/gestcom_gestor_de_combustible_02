@@ -1,6 +1,7 @@
 from django import forms
 from django.core.validators import MinValueValidator
-from .models import CatalogoCliente, Transporte, ModeloSolicitud, TransferenciaAlmacen, OperacionAlmacenProduccion
+from .models import CatalogoCliente, Transporte, ModeloSolicitud, TransferenciaAlmacen, OperacionAlmacenProduccion, \
+    ResultadoAlmacenAseguramiento
 from django.utils import timezone
 
 
@@ -235,3 +236,70 @@ class OperacionAlmacenProduccionForm(forms.ModelForm):
         if generacion is not None and generacion < 0:
             raise forms.ValidationError('La generación no puede ser negativa.')
         return generacion
+
+
+class ResultadoAlmacenAseguramientoForm(forms.ModelForm):
+    class Meta:
+        model = ResultadoAlmacenAseguramiento
+        fields = ['fecha_hora', 'total_consumo', 'total_venta', 'descripcion']
+        widgets = {
+            'fecha_hora': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local',
+                'format': '%Y-%m-%dT%H:%M',
+            }),
+            'total_consumo': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0',
+            }),
+            'total_venta': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0',
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Escriba notas u observaciones (opcional)',
+                'rows': 3,
+            }),
+        }
+        labels = {
+            'fecha_hora': 'Fecha y Hora',
+            'total_consumo': 'Total de Consumo',
+            'total_venta': 'Total de Venta',
+            'descripcion': 'Descripción',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Hacer opcional la descripción
+        self.fields['descripcion'].required = False
+
+        # Establecer fecha actual por defecto
+        if not self.instance.pk:
+            ahora = timezone.localtime(timezone.now())
+            self.fields['fecha_hora'].initial = ahora.strftime('%Y-%m-%dT%H:%M')
+
+    def clean_fecha_hora(self):
+        fecha_hora = self.cleaned_data.get('fecha_hora')
+        if fecha_hora:
+            if timezone.is_naive(fecha_hora):
+                fecha_hora = timezone.make_aware(fecha_hora)
+            if fecha_hora > timezone.now():
+                raise forms.ValidationError('No se puede registrar una fecha futura.')
+        return fecha_hora
+
+    def clean_total_consumo(self):
+        total_consumo = self.cleaned_data.get('total_consumo')
+        if total_consumo is not None and total_consumo < 0:
+            raise forms.ValidationError('El total de consumo no puede ser negativo.')
+        return total_consumo
+
+    def clean_total_venta(self):
+        total_venta = self.cleaned_data.get('total_venta')
+        if total_venta is not None and total_venta < 0:
+            raise forms.ValidationError('El total de venta no puede ser negativo.')
+        return total_venta

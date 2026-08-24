@@ -45,4 +45,5 @@ urlpatterns = [
 
     # URLs de Resultados del Almacén de Aseguramiento
     path('resultados-aseguramiento/', views.lista_resultados_aseguramiento, name='lista_resultados_aseguramiento'),
+    path('resultados-aseguramiento/insertar/', views.insertar_cantidad_aseguramiento, name='insertar_cantidad_aseguramiento'),
 ]

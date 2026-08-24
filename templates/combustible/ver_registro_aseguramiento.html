@@ -73,8 +73,23 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
             <p><strong>Cantidad Total Aprobada:</strong> {{ registro.cantidad_total_aprobada }}</p>
         </div>
     </div>
+    <div class="row mt-2">
+        <div class="col-md-4">
+            <p><strong>Despacho Real Total:</strong> {{ registro.despacho_real_total }}</p>
+        </div>
+        <div class="col-md-4">
+            <p><strong>Estado:</strong>
+                {% if registro.estado == 'pendiente' %}
+                    <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Pendiente</span>
+                {% else %}
+                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Despachado</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
 </div>
 
+{% if registro.estado == 'pendiente' and puede_editar %}
 <form method="post" action="{% url 'guardar_despacho_real' registro.id %}" id="form-despacho">
     {% csrf_token %}
     <div class="table-container">
@@ -95,15 +110,11 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                         <td>{{ despacho.detalle_vehiculo.transporte.chapa }}</td>
                         <td>{{ despacho.detalle_vehiculo.cant_abastecer }}</td>
                         <td>
-                            {% if puede_editar %}
                             <input type="number" name="despacho_{{ despacho.id }}"
                                    class="form-control form-control-sm"
                                    value="{{ despacho.despacho_real }}"
                                    placeholder="0.00" step="0.01" min="0"
                                    max="{{ despacho.detalle_vehiculo.cant_abastecer }}">
-                            {% else %}
-                            {{ despacho.despacho_real }}
-                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}
@@ -123,16 +134,13 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
         <p><strong>Despacho Real Total:</strong> <span id="despacho-total">{{ registro.despacho_real_total }}</span></p>
     </div>
 
-    {% if puede_editar %}
     <div class="d-flex justify-content-end mt-3 pb-4">
         <button type="submit" class="btn btn-success fw-bold">
             <i class="bi bi-save"></i> Guardar Despachos
         </button>
     </div>
-    {% endif %}
 </form>
 
-{% if puede_editar %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var inputs = document.querySelectorAll('input[type="number"][name^="despacho_"]');
@@ -152,5 +160,55 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+{% else %}
+<div class="table-container">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Chapa del Vehículo</th>
+                    <th>Cantidad Aprobada</th>
+                    <th>Despacho Real</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for despacho in despachos %}
+                <tr>
+                    <td>{{ despacho.detalle_vehiculo.detalle_solicitud.cliente.cliente }}</td>
+                    <td>{{ despacho.detalle_vehiculo.transporte.chapa }}</td>
+                    <td>{{ despacho.detalle_vehiculo.cant_abastecer }}</td>
+                    <td>{{ despacho.despacho_real }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-5">
+                        <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                        <p class="mt-3 fs-5">No se encontraron vehículos.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="total-box">
+    <p><strong>Despacho Real Total:</strong> {{ registro.despacho_real_total }}</p>
+</div>
+
+<div class="total-box">
+    <div class="row">
+        <div class="col-md-4">
+            <p><strong>Total de Consumo Sobrante:</strong> {{ registro.total_consumo }}</p>
+        </div>
+        <div class="col-md-4">
+            <p><strong>Total de Venta Sobrante:</strong> {{ registro.total_venta }}</p>
+        </div>
+        <div class="col-md-4">
+            <p><strong>Total Existente:</strong> {{ registro.total_existente }}</p>
+        </div>
+    </div>
+</div>
 {% endif %}
 {% endblock %}

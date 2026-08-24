@@ -7,7 +7,8 @@ from django.utils.dateparse import parse_datetime
 from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicitud, DetalleSolicitudVehiculo, \
     AlmacenProduccion, AlmacenAseguramiento, TransferenciaAlmacen, OperacionAlmacenProduccion, \
     RegistroAlmacenAseguramiento, DespachoRealVehiculo, ResultadoAlmacenAseguramiento
-from .forms import CatalogoClienteForm, TransporteForm, TransferenciaAlmacenForm, OperacionAlmacenProduccionForm
+from .forms import CatalogoClienteForm, TransporteForm, TransferenciaAlmacenForm, OperacionAlmacenProduccionForm, \
+    ResultadoAlmacenAseguramientoForm
 
 
 @login_required
@@ -1047,7 +1048,45 @@ def lista_resultados_aseguramiento(request):
         return redirect('dashboard')
 
     resultados = ResultadoAlmacenAseguramiento.objects.all().order_by('-id')
+    puede_editar = request.user.departamento in ['admin', 'almacen']
 
     return render(request, 'combustible/lista_resultados_aseguramiento.html', {
         'resultados': resultados,
+        'puede_editar': puede_editar,
+    })
+
+
+@login_required
+def insertar_cantidad_aseguramiento(request):
+    if request.user.departamento not in ['admin', 'almacen']:
+        messages.error(request, 'No tiene permisos para insertar cantidades.')
+        return redirect('lista_resultados_aseguramiento')
+
+    if request.method == 'POST':
+        form = ResultadoAlmacenAseguramientoForm(request.POST)
+        if form.is_valid():
+            resultado = form.save(commit=False)
+            # Calcular total existente automáticamente
+            resultado.total_consumo = resultado.total_consumo or Decimal('0')
+            resultado.total_venta = resultado.total_venta or Decimal('0')
+            resultado.total_existente = resultado.total_consumo + resultado.total_venta
+            resultado.registro = None  # Es un registro manual
+            resultado.save()
+
+            # Actualizar el saldo del Almacén de Aseguramiento
+            almacen_aseguramiento = AlmacenAseguramiento.objects.first()
+            if not almacen_aseguramiento:
+                almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
+            almacen_aseguramiento.cantidad_actual = resultado.total_existente
+            almacen_aseguramiento.save()
+
+            messages.success(request, 'Cantidad insertada correctamente.')
+            return redirect('lista_resultados_aseguramiento')
+        else:
+            messages.error(request, 'Por favor, corrija los errores señalados.')
+    else:
+        form = ResultadoAlmacenAseguramientoForm()
+
+    return render(request, 'combustible/insertar_cantidad_aseguramiento.html', {
+        'form': form,
     })

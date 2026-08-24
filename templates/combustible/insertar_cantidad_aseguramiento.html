@@ -1,0 +1,209 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
+.resultado-box {
+    background: #e8f5e9;
+    border-radius: 1rem;
+    padding: 1rem 1.5rem;
+    margin-top: 1rem;
+    box-shadow: 0 0.2rem 0.5rem rgba(0, 0, 0, 0.06);
+    border-left: 4px solid #28a745;
+}
+.resultado-box p {
+    margin-bottom: 0;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+.error-message {
+    color: #dc3545;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+</style>
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-7">
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-header text-white text-center" style="background: linear-gradient(135deg, #0d6efd, #6f42c1);">
+                <h4 class="mb-0 py-2 fw-bold">
+                    <i class="bi bi-plus-circle"></i> Insertar Nueva Cantidad
+                </h4>
+                <small class="text-white-50">Almacén de Aseguramiento</small>
+            </div>
+            <div class="card-body p-4 bg-light">
+                <form method="post" id="form-resultado">
+                    {% csrf_token %}
+
+                    <!-- Fecha y Hora -->
+                    <div class="mb-3">
+                        <label for="id_fecha_hora" class="form-label fw-bold text-secondary">{{ form.fecha_hora.label }} *</label>
+                        {{ form.fecha_hora }}
+                        {% if form.fecha_hora.errors %}
+                            <div class="text-danger mt-1">{{ form.fecha_hora.errors }}</div>
+                        {% endif %}
+                        <div id="error-fecha" class="error-message" style="display: none;">
+                            No se puede registrar una fecha futura.
+                        </div>
+                    </div>
+
+                    <!-- Total de Consumo -->
+                    <div class="mb-3">
+                        <label for="id_total_consumo" class="form-label fw-bold text-secondary">{{ form.total_consumo.label }} *</label>
+                        <input type="number" name="total_consumo" id="id_total_consumo" class="form-control"
+                               placeholder="0.00" step="0.01" min="0" required>
+                        {% if form.total_consumo.errors %}
+                            <div class="text-danger mt-1">{{ form.total_consumo.errors }}</div>
+                        {% endif %}
+                        <div id="error-consumo" class="error-message" style="display: none;">
+                            El total de consumo no puede ser negativo.
+                        </div>
+                    </div>
+
+                    <!-- Total de Venta -->
+                    <div class="mb-3">
+                        <label for="id_total_venta" class="form-label fw-bold text-secondary">{{ form.total_venta.label }} *</label>
+                        <input type="number" name="total_venta" id="id_total_venta" class="form-control"
+                               placeholder="0.00" step="0.01" min="0" required>
+                        {% if form.total_venta.errors %}
+                            <div class="text-danger mt-1">{{ form.total_venta.errors }}</div>
+                        {% endif %}
+                        <div id="error-venta" class="error-message" style="display: none;">
+                            El total de venta no puede ser negativo.
+                        </div>
+                    </div>
+
+                    <!-- Total Existente (calculado automáticamente) -->
+                    <div class="resultado-box mb-3">
+                        <p><strong>Total Existente:</strong> <span id="total-existente">0.00</span> L</p>
+                    </div>
+
+                    <!-- Descripción (opcional) -->
+                    <div class="mb-4">
+                        <label for="id_descripcion" class="form-label fw-bold text-secondary">{{ form.descripcion.label }}</label>
+                        {{ form.descripcion }}
+                        {% if form.descripcion.errors %}
+                            <div class="text-danger mt-1">{{ form.descripcion.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'lista_resultados_aseguramiento' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </a>
+                        <button type="submit" class="btn btn-success fw-bold">
+                            <i class="bi bi-save"></i> Guardar Cantidad
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var fechaHora = document.getElementById('id_fecha_hora');
+
+    // Si no hay fecha establecida, poner la fecha y hora actual
+    if (fechaHora && !fechaHora.value) {
+        var now = new Date();
+        var fecha = now.getFullYear() + '-' +
+            String(now.getMonth() + 1).padStart(2, '0') + '-' +
+            String(now.getDate()).padStart(2, '0') + 'T' +
+            String(now.getHours()).padStart(2, '0') + ':' +
+            String(now.getMinutes()).padStart(2, '0');
+        fechaHora.value = fecha;
+    }
+
+    // Función para calcular el total existente
+    function calcularTotalExistente() {
+        var totalConsumo = parseFloat(document.getElementById('id_total_consumo').value) || 0;
+        var totalVenta = parseFloat(document.getElementById('id_total_venta').value) || 0;
+
+        var totalExistente = totalConsumo + totalVenta;
+        totalExistente = Math.round(totalExistente * 100) / 100;
+
+        document.getElementById('total-existente').textContent = totalExistente.toFixed(2);
+    }
+
+    // Escuchar cambios en total_consumo y total_venta
+    document.getElementById('id_total_consumo').addEventListener('input', function() {
+        calcularTotalExistente();
+        // Validar que no sea negativo
+        var valor = parseFloat(this.value) || 0;
+        if (valor < 0) {
+            document.getElementById('error-consumo').style.display = 'block';
+            this.classList.add('is-invalid');
+        } else {
+            document.getElementById('error-consumo').style.display = 'none';
+            this.classList.remove('is-invalid');
+        }
+    });
+
+    document.getElementById('id_total_venta').addEventListener('input', function() {
+        calcularTotalExistente();
+        // Validar que no sea negativo
+        var valor = parseFloat(this.value) || 0;
+        if (valor < 0) {
+            document.getElementById('error-venta').style.display = 'block';
+            this.classList.add('is-invalid');
+        } else {
+            document.getElementById('error-venta').style.display = 'none';
+            this.classList.remove('is-invalid');
+        }
+    });
+
+    // Validar fecha al cambiar
+    fechaHora.addEventListener('change', function() {
+        var fechaSeleccionada = new Date(this.value);
+        var ahora = new Date();
+        if (fechaSeleccionada > ahora) {
+            document.getElementById('error-fecha').style.display = 'block';
+            this.classList.add('is-invalid');
+        } else {
+            document.getElementById('error-fecha').style.display = 'none';
+            this.classList.remove('is-invalid');
+        }
+    });
+
+    // Validar al enviar el formulario
+    document.getElementById('form-resultado').addEventListener('submit', function(e) {
+        var hayError = false;
+
+        // Validar fecha
+        var fechaSeleccionada = new Date(fechaHora.value);
+        var ahora = new Date();
+        if (fechaSeleccionada > ahora) {
+            document.getElementById('error-fecha').style.display = 'block';
+            fechaHora.classList.add('is-invalid');
+            hayError = true;
+        }
+
+        // Validar consumo
+        var totalConsumo = parseFloat(document.getElementById('id_total_consumo').value) || 0;
+        if (totalConsumo < 0) {
+            document.getElementById('error-consumo').style.display = 'block';
+            document.getElementById('id_total_consumo').classList.add('is-invalid');
+            hayError = true;
+        }
+
+        // Validar venta
+        var totalVenta = parseFloat(document.getElementById('id_total_venta').value) || 0;
+        if (totalVenta < 0) {
+            document.getElementById('error-venta').style.display = 'block';
+            document.getElementById('id_total_venta').classList.add('is-invalid');
+            hayError = true;
+        }
+
+        if (hayError) {
+            e.preventDefault();
+        }
+    });
+
+    // Calcular al cargar
+    calcularTotalExistente();
+});
+</script>
+{% endblock %}
