@@ -56,9 +56,15 @@
         </h2>
         <div>
             {% if user.departamento == 'admin' or user.departamento == 'transporte' %}
-                <a href="{% url 'crear_solicitud' %}" class="btn btn-success fw-bold me-2">
-                    <i class="bi bi-plus-circle"></i> Nueva Solicitud
-                </a>
+                {% if hay_solicitud_en_proceso %}
+                    <a href="#" class="btn btn-warning fw-bold me-2" onclick="mostrarMensajeSolicitudEnProceso(); return false;">
+                        <i class="bi bi-clock-history"></i> Solicitud en Proceso
+                    </a>
+                {% else %}
+                    <a href="{% url 'crear_solicitud' %}" class="btn btn-success fw-bold me-2">
+                        <i class="bi bi-plus-circle"></i> Nueva Solicitud
+                    </a>
+                {% endif %}
             {% endif %}
             <a href="{% url 'dashboard' %}" class="btn btn-danger fw-bold">
                 <i class="bi bi-arrow-left"></i> Volver al Inicio
@@ -265,6 +271,30 @@
         </div>
     </div>
 
+    <!-- Modal Solicitud en Proceso -->
+    <div class="modal fade" id="modalSolicitudEnProceso" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, #ffc107, #f39c12);">
+                    <h5 class="modal-title">
+                        <i class="bi bi-clock-history"></i> Solicitud en Proceso
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <i class="bi bi-hourglass-split text-warning" style="font-size: 3rem;"></i>
+                    <p class="mt-3 fs-5">No se puede crear una nueva solicitud.</p>
+                    <small class="text-muted">Existe una solicitud en proceso que debe completar todo su flujo antes de comenzar una nueva.</small>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-check-circle"></i> Entendido
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         function confirmarEliminar(url) {
             document.getElementById('confirmarEliminarBtn').href = url;
@@ -299,5 +329,10 @@
             }
             window.location.href = url;
         });
+
+        function mostrarMensajeSolicitudEnProceso() {
+            var modal = new bootstrap.Modal(document.getElementById('modalSolicitudEnProceso'));
+            modal.show();
+        }
     </script>
 {% endblock %}

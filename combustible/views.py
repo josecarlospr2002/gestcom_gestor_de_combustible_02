@@ -197,7 +197,6 @@ def ver_cliente(request, pk):
     })
 
 
-# Vistas para Modelo de Solicitud
 @login_required
 def lista_solicitudes(request):
     if request.user.departamento not in ['admin', 'transporte', 'directivo', 'director']:
@@ -206,6 +205,22 @@ def lista_solicitudes(request):
     solicitudes = ModeloSolicitud.objects.all()
     puede_editar = request.user.departamento in ['admin', 'transporte']
     puede_aprobar = request.user.departamento in ['admin', 'director']
+
+    # Verificar si hay una solicitud en proceso (no completada)
+    # Bloquea si hay:
+    # - Solicitud en borrador, pendiente o rechazada
+    # - Transferencia pendiente
+    # - Operación de almacén pendiente
+    # - Registro de aseguramiento pendiente o borrador
+    hay_solicitud_en_proceso = ModeloSolicitud.objects.filter(
+        estado__in=['borrador', 'pendiente', 'rechazada']
+    ).exists() or TransferenciaAlmacen.objects.filter(
+        estado='pendiente'
+    ).exists() or RegistroAlmacenAseguramiento.objects.filter(
+        estado__in=['pendiente', 'borrador']
+    ).exists() or OperacionAlmacenProduccion.objects.filter(
+        estado='pendiente'
+    ).exists()
 
     # Verificar si hay al menos una solicitud con acciones disponibles para este usuario
     hay_acciones = False
@@ -221,6 +236,7 @@ def lista_solicitudes(request):
         'puede_editar': puede_editar,
         'puede_aprobar': puede_aprobar,
         'hay_acciones': hay_acciones,
+        'hay_solicitud_en_proceso': hay_solicitud_en_proceso,
     })
 
 
@@ -229,6 +245,32 @@ def crear_solicitud(request):
     if request.user.departamento not in ['admin', 'transporte']:
         messages.error(request, 'No tiene permisos para crear solicitudes.')
         return redirect('lista_solicitudes')
+
+    # ===== VALIDACIÓN CORREGIDA =====
+    # Bloquea: borrador, pendiente, rechazada
+    # NO bloquea: aprobada (si ya no hay flujo pendiente)
+    solicitud_en_proceso = ModeloSolicitud.objects.filter(
+        estado__in=['borrador', 'pendiente', 'rechazada']
+    ).exists()
+
+    transferencia_en_proceso = TransferenciaAlmacen.objects.filter(
+        estado='pendiente'
+    ).exists()
+
+    registro_en_proceso = RegistroAlmacenAseguramiento.objects.filter(
+        estado__in=['pendiente', 'borrador']
+    ).exists()
+
+    operacion_en_proceso = OperacionAlmacenProduccion.objects.filter(
+        estado='pendiente'
+    ).exists()
+
+    if solicitud_en_proceso or transferencia_en_proceso or registro_en_proceso or operacion_en_proceso:
+        messages.error(request,
+                       'No se puede crear una nueva solicitud. Existe una solicitud en proceso que debe completar todo su flujo antes de comenzar una nueva.')
+        return redirect('lista_solicitudes')
+    # ===== FIN VALIDACIÓN =====
+
     clientes = CatalogoCliente.objects.prefetch_related('transportes').all()
 
     if request.method == 'POST':
