@@ -199,7 +199,7 @@ def ver_cliente(request, pk):
 
 @login_required
 def lista_solicitudes(request):
-    if request.user.departamento not in ['admin', 'transporte', 'directivo', 'director']:
+    if request.user.departamento not in ['admin', 'transporte', 'directivo', 'director', 'almacen']:
         messages.error(request, 'No tiene permisos para ver las solicitudes.')
         return redirect('dashboard')
     solicitudes = ModeloSolicitud.objects.all()
@@ -285,6 +285,8 @@ def crear_solicitud(request):
             return render(request, 'combustible/crear_solicitud.html', {
                 'clientes': clientes,
                 'fecha_hora_temp': fecha_hora,
+                'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+                    '0'),
             })
 
         fecha_parseada = parse_datetime(fecha_hora)
@@ -296,6 +298,8 @@ def crear_solicitud(request):
                 return render(request, 'combustible/crear_solicitud.html', {
                     'clientes': clientes,
                     'fecha_hora_temp': fecha_hora,
+                    'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+                        '0'),
                 })
 
         # Validar que haya al menos una fila
@@ -304,6 +308,8 @@ def crear_solicitud(request):
             return render(request, 'combustible/crear_solicitud.html', {
                 'clientes': clientes,
                 'fecha_hora_temp': fecha_hora,
+                'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+                    '0'),
             })
 
         # Validar que no haya clientes duplicados
@@ -312,6 +318,8 @@ def crear_solicitud(request):
             return render(request, 'combustible/crear_solicitud.html', {
                 'clientes': clientes,
                 'fecha_hora_temp': fecha_hora,
+                'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+                    '0'),
             })
 
         # Validar cantidades
@@ -330,12 +338,16 @@ def crear_solicitud(request):
                     return render(request, 'combustible/crear_solicitud.html', {
                         'clientes': clientes,
                         'fecha_hora_temp': fecha_hora,
+                        'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+                            '0'),
                     })
             except InvalidOperation:
                 messages.error(request, f'Cantidad inválida para {cliente.cliente}.')
                 return render(request, 'combustible/crear_solicitud.html', {
                     'clientes': clientes,
                     'fecha_hora_temp': fecha_hora,
+                    'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+                        '0'),
                 })
 
             # Validar Anexo 2 para clientes de Venta
@@ -344,6 +356,8 @@ def crear_solicitud(request):
                 return render(request, 'combustible/crear_solicitud.html', {
                     'clientes': clientes,
                     'fecha_hora_temp': fecha_hora,
+                    'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+                        '0'),
                 })
 
             # Sumar totales
@@ -353,6 +367,21 @@ def crear_solicitud(request):
                 total_consumo += cantidad
 
         total_general = total_consumo + total_venta
+
+        # ===== NUEVA VALIDACIÓN =====
+        # Verificar que el total general no exceda la cantidad en Almacén de Producción
+        almacen_produccion = AlmacenProduccion.objects.first()
+        cantidad_disponible = almacen_produccion.cantidad_actual if almacen_produccion else Decimal('0')
+
+        if total_general > cantidad_disponible:
+            messages.error(request,
+                           f'El Total General ({total_general}) no puede ser superior a la cantidad disponible en el Almacén de Producción ({cantidad_disponible}).')
+            return render(request, 'combustible/crear_solicitud.html', {
+                'clientes': clientes,
+                'fecha_hora_temp': fecha_hora,
+                'cantidad_almacen_produccion': cantidad_disponible,
+            })
+        # ===== FIN VALIDACIÓN =====
 
         # Crear solicitud
         solicitud = ModeloSolicitud.objects.create(
@@ -397,12 +426,14 @@ def crear_solicitud(request):
 
     return render(request, 'combustible/crear_solicitud.html', {
         'clientes': clientes,
+        'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+            '0'),
     })
 
 
 @login_required
 def ver_solicitud(request, pk):
-    if request.user.departamento not in ['admin', 'transporte', 'directivo', 'director']:
+    if request.user.departamento not in ['admin', 'transporte', 'directivo', 'director', 'almacen']:
         messages.error(request, 'No tiene permisos para ver esta solicitud.')
         return redirect('dashboard')
     solicitud = get_object_or_404(ModeloSolicitud, pk=pk)
@@ -470,6 +501,8 @@ def editar_solicitud(request, pk):
                 'clientes': clientes,
                 'detalles_precargados': detalles_precargados,
                 'fecha_hora_temp': fecha_hora,
+                'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+                    '0'),
             })
 
         fecha_parseada = parse_datetime(fecha_hora)
@@ -483,6 +516,8 @@ def editar_solicitud(request, pk):
                     'clientes': clientes,
                     'detalles_precargados': detalles_precargados,
                     'fecha_hora_temp': fecha_hora,
+                    'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+                        '0'),
                 })
 
         # Validar que haya al menos una fila
@@ -493,6 +528,8 @@ def editar_solicitud(request, pk):
                 'clientes': clientes,
                 'detalles_precargados': detalles_precargados,
                 'fecha_hora_temp': fecha_hora,
+                'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+                    '0'),
             })
 
         # Validar que no haya clientes duplicados
@@ -503,6 +540,8 @@ def editar_solicitud(request, pk):
                 'clientes': clientes,
                 'detalles_precargados': detalles_precargados,
                 'fecha_hora_temp': fecha_hora,
+                'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+                    '0'),
             })
 
         # Validar cantidades
@@ -523,6 +562,8 @@ def editar_solicitud(request, pk):
                         'clientes': clientes,
                         'detalles_precargados': detalles_precargados,
                         'fecha_hora_temp': fecha_hora,
+                        'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+                            '0'),
                     })
             except InvalidOperation:
                 messages.error(request, f'Cantidad inválida para {cliente.cliente}.')
@@ -531,6 +572,8 @@ def editar_solicitud(request, pk):
                     'clientes': clientes,
                     'detalles_precargados': detalles_precargados,
                     'fecha_hora_temp': fecha_hora,
+                    'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+                        '0'),
                 })
 
             # Validar Anexo 2 para clientes de Venta
@@ -541,6 +584,8 @@ def editar_solicitud(request, pk):
                     'clientes': clientes,
                     'detalles_precargados': detalles_precargados,
                     'fecha_hora_temp': fecha_hora,
+                    'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+                        '0'),
                 })
 
             # Sumar totales
@@ -550,6 +595,23 @@ def editar_solicitud(request, pk):
                 total_consumo += cantidad
 
         total_general = total_consumo + total_venta
+
+        # ===== NUEVA VALIDACIÓN =====
+        # Verificar que el total general no exceda la cantidad en Almacén de Producción
+        almacen_produccion = AlmacenProduccion.objects.first()
+        cantidad_disponible = almacen_produccion.cantidad_actual if almacen_produccion else Decimal('0')
+
+        if total_general > cantidad_disponible:
+            messages.error(request,
+                           f'El Total General ({total_general}) no puede ser superior a la cantidad disponible en el Almacén de Producción ({cantidad_disponible}).')
+            return render(request, 'combustible/editar_solicitud.html', {
+                'solicitud': solicitud,
+                'clientes': clientes,
+                'detalles_precargados': detalles_precargados,
+                'fecha_hora_temp': fecha_hora,
+                'cantidad_almacen_produccion': cantidad_disponible,
+            })
+        # ===== FIN VALIDACIÓN =====
 
         # Actualizar solicitud
         solicitud.fecha_hora = fecha_hora
@@ -599,6 +661,8 @@ def editar_solicitud(request, pk):
         'solicitud': solicitud,
         'clientes': clientes,
         'detalles_precargados': detalles_precargados,
+        'cantidad_almacen_produccion': AlmacenProduccion.objects.first().cantidad_actual if AlmacenProduccion.objects.first() else Decimal(
+            '0'),
     })
 
 
@@ -908,7 +972,7 @@ def validar_operacion_almacen(request, pk):
                     solicitud=transferencia.solicitud,
                     fecha_hora=transferencia.solicitud.fecha_hora,
                     cantidad_total_aprobada=transferencia.solicitud.total_general,
-                    despacho_real_total=transferencia.cantidad_transferida,
+                    despacho_real_total=0,
                     estado='pendiente'
                 )
 
@@ -954,7 +1018,7 @@ def eliminar_operacion_almacen(request, pk):
 # Vistas para Almacén de Aseguramiento
 @login_required
 def lista_registros_aseguramiento(request):
-    if request.user.departamento not in ['admin', 'almacen', 'director', 'directivo']:
+    if request.user.departamento not in ['admin', 'almacen', 'director', 'directivo', 'transporte']:
         messages.error(request, 'No tiene permisos para ver el Almacén de Aseguramiento.')
         return redirect('dashboard')
 
@@ -976,7 +1040,7 @@ def lista_registros_aseguramiento(request):
 
 @login_required
 def ver_registro_aseguramiento(request, pk):
-    if request.user.departamento not in ['admin', 'almacen', 'director', 'directivo']:
+    if request.user.departamento not in ['admin', 'almacen', 'director', 'directivo', 'transporte']:
         messages.error(request, 'No tiene permisos para ver este registro.')
         return redirect('lista_registros_aseguramiento')
 

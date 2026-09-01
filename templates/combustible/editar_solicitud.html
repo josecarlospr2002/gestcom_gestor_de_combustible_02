@@ -164,9 +164,16 @@
         }
 
         @keyframes fadeOutMotivo {
-            0% { opacity: 1; }
-            80% { opacity: 1; }
-            100% { opacity: 0; display: none; }
+            0% {
+                opacity: 1;
+            }
+            80% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                display: none;
+            }
         }
 
         .motivo-rechazo .titulo {
@@ -197,12 +204,12 @@
 
                         <!-- Motivo de rechazo si existe -->
                         {% if solicitud.estado == 'rechazada' and solicitud.motivo_rechazo %}
-                        <div class="motivo-rechazo" id="motivo-rechazo">
-                            <div class="titulo">
-                                <i class="bi bi-exclamation-triangle-fill"></i> Motivo del rechazo:
+                            <div class="motivo-rechazo" id="motivo-rechazo">
+                                <div class="titulo">
+                                    <i class="bi bi-exclamation-triangle-fill"></i> Motivo del rechazo:
+                                </div>
+                                <p class="texto">{{ solicitud.motivo_rechazo }}</p>
                             </div>
-                            <p class="texto">{{ solicitud.motivo_rechazo }}</p>
-                        </div>
                         {% endif %}
 
                         <div class="row mb-3">
@@ -284,7 +291,9 @@
         <div class="texto" id="mensaje-texto"></div>
         <div>
             <button type="button" class="btn-aceptar" id="mensaje-aceptar" onclick="cerrarMensaje()">Aceptar</button>
-            <button type="button" class="btn-cancelar" id="mensaje-cancelar" style="display: none;" onclick="cancelarConfirmacion()">Cancelar</button>
+            <button type="button" class="btn-cancelar" id="mensaje-cancelar" style="display: none;"
+                    onclick="cancelarConfirmacion()">Cancelar
+            </button>
         </div>
     </div>
 
@@ -359,18 +368,19 @@
         ];
 
         var vehiculosPorCliente = {
-            {% for cliente in clientes %}
-                {{ cliente.id }}: [
-                    {% for transporte in cliente.transportes.all %}
-                        {
-                            id: {{ transporte.id }},
-                            tipo_vehiculo: "{{ transporte.tipo_vehiculo|escapejs }}",
-                            chapa: "{{ transporte.chapa|escapejs }}"
-                        },
-                    {% endfor %}
-                ],
+        {% for cliente in clientes %}
+            {{ cliente.id }}: [
+            {% for transporte in cliente.transportes.all %}
+                {
+                    id: {{ transporte.id }},
+                    tipo_vehiculo: "{{ transporte.tipo_vehiculo|escapejs }}",
+                    chapa: "{{ transporte.chapa|escapejs }}"
+                },
             {% endfor %}
-        };
+        ],
+        {% endfor %}
+        }
+        ;
 
         // Datos precargados desde el backend
         var detallesPrecargados = [
@@ -400,9 +410,10 @@
         var filasVehiculosAgregadas = 0;
         var filasAgregadas = 0;
         var confirmacionCallback = null;
+        var cantidadAlmacenProduccion = parseFloat("{{ cantidad_almacen_produccion|default:'0' }}".replace(',', '.')) || 0;
 
         // Cargar datos precargados en datosModalTemporal
-        detallesPrecargados.forEach(function(detalle) {
+        detallesPrecargados.forEach(function (detalle) {
             datosModalTemporal[detalle.cliente_id] = detalle.vehiculos;
         });
 
@@ -452,7 +463,7 @@
         }
 
         // Sobreescribir el onclick del botón aceptar
-        document.getElementById('mensaje-aceptar').onclick = function() {
+        document.getElementById('mensaje-aceptar').onclick = function () {
             if (confirmacionCallback) {
                 confirmacionCallback();
             }
@@ -916,7 +927,15 @@
 
         // Confirmar guardar
         function confirmarGuardar() {
-            mostrarMensajeConfirmacion('¿Desea guardar los cambios realizados?', function() {
+            // Verificar que el total general no exceda la cantidad disponible antes de confirmar
+            var totalGeneral = parseFloat(document.getElementById('total-general').textContent) || 0;
+
+            if (totalGeneral > cantidadAlmacenProduccion) {
+                mostrarMensaje('El Total General (' + totalGeneral.toFixed(2) + ') no puede ser superior a la cantidad disponible en el Almacén de Producción (' + cantidadAlmacenProduccion.toFixed(2) + ').', 'error');
+                return;
+            }
+
+            mostrarMensajeConfirmacion('¿Desea guardar los cambios realizados?', function () {
                 ejecutarEnvio();
             });
         }
@@ -1003,6 +1022,16 @@
                 return;
             }
 
+            // ===== NUEVA VALIDACIÓN =====
+            // Verificar que el total general no exceda la cantidad disponible
+            var totalGeneral = parseFloat(document.getElementById('total-general').textContent) || 0;
+
+            if (totalGeneral > cantidadAlmacenProduccion) {
+                mostrarMensaje('El Total General (' + totalGeneral.toFixed(2) + ') no puede ser superior a la cantidad disponible en el Almacén de Producción (' + cantidadAlmacenProduccion.toFixed(2) + ').', 'error');
+                return;
+            }
+            // ===== FIN VALIDACIÓN =====
+
             // Ahora sí enviar el formulario
             document.getElementById('form-solicitud').submit();
         }
@@ -1020,7 +1049,7 @@
             }
 
             // Cargar detalles precargados
-            detallesPrecargados.forEach(function(detalle) {
+            detallesPrecargados.forEach(function (detalle) {
                 agregarFila(detalle.cliente_id, detalle.anexo_2, detalle.cantidad);
             });
 

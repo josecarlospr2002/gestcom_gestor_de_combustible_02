@@ -243,7 +243,9 @@
         <div class="texto" id="mensaje-texto"></div>
         <div>
             <button type="button" class="btn-aceptar" id="mensaje-aceptar" onclick="cerrarMensaje()">Aceptar</button>
-            <button type="button" class="btn-cancelar" id="mensaje-cancelar" style="display: none;" onclick="cancelarConfirmacion()">Cancelar</button>
+            <button type="button" class="btn-cancelar" id="mensaje-cancelar" style="display: none;"
+                    onclick="cancelarConfirmacion()">Cancelar
+            </button>
         </div>
     </div>
 
@@ -318,18 +320,19 @@
         ];
 
         var vehiculosPorCliente = {
-            {% for cliente in clientes %}
-                {{ cliente.id }}: [
-                    {% for transporte in cliente.transportes.all %}
-                        {
-                            id: {{ transporte.id }},
-                            tipo_vehiculo: "{{ transporte.tipo_vehiculo|escapejs }}",
-                            chapa: "{{ transporte.chapa|escapejs }}"
-                        },
-                    {% endfor %}
-                ],
+        {% for cliente in clientes %}
+            {{ cliente.id }}: [
+            {% for transporte in cliente.transportes.all %}
+                {
+                    id: {{ transporte.id }},
+                    tipo_vehiculo: "{{ transporte.tipo_vehiculo|escapejs }}",
+                    chapa: "{{ transporte.chapa|escapejs }}"
+                },
             {% endfor %}
-        };
+        ],
+        {% endfor %}
+        }
+        ;
 
         var datosModalTemporal = {};
         var clienteActualModal = null;
@@ -337,6 +340,7 @@
         var filasVehiculosAgregadas = 0;
         var filasAgregadas = 0;
         var confirmacionCallback = null;
+        var cantidadAlmacenProduccion = parseFloat("{{ cantidad_almacen_produccion|default:'0' }}".replace(',', '.')) || 0;
 
         function mostrarMensaje(texto, tipo) {
             var mensaje = document.getElementById('mensaje-alerta');
@@ -384,7 +388,7 @@
         }
 
         // Sobreescribir el onclick del botón aceptar
-        document.getElementById('mensaje-aceptar').onclick = function() {
+        document.getElementById('mensaje-aceptar').onclick = function () {
             if (confirmacionCallback) {
                 confirmacionCallback();
             }
@@ -848,7 +852,7 @@
             var filas = document.querySelectorAll('#tbody-solicitud tr');
             var estado = [];
 
-            filas.forEach(function(fila) {
+            filas.forEach(function (fila) {
                 var select = fila.querySelector('.select-cliente');
                 var divCliente = fila.querySelector('.td-cliente');
                 var clienteIdFila = select ? select.value : (divCliente ? divCliente.dataset.clienteId : null);
@@ -880,7 +884,7 @@
 
             if (estadoGuardado) {
                 var estado = JSON.parse(estadoGuardado);
-                estado.forEach(function(dato) {
+                estado.forEach(function (dato) {
                     agregarFila(dato.cliente_id, dato.anexo_2, dato.cantidad);
                     if (dato.vehiculos && dato.vehiculos.length > 0) {
                         datosModalTemporal[dato.cliente_id] = dato.vehiculos;
@@ -968,6 +972,17 @@
                 mostrarMensaje('Hay errores en el formulario. Verifique las cantidades y el Anexo 2.', 'error');
                 return;
             }
+
+            // ===== NUEVA VALIDACIÓN =====
+            // Verificar que el total general no exceda la cantidad disponible
+            var totalGeneral = parseFloat(document.getElementById('total-general').textContent) || 0;
+
+            if (totalGeneral > cantidadAlmacenProduccion) {
+                e.preventDefault();
+                mostrarMensaje('El Total General (' + totalGeneral.toFixed(2) + ') no puede ser superior a la cantidad disponible en el Almacén de Producción (' + cantidadAlmacenProduccion.toFixed(2) + ').', 'error');
+                return;
+            }
+            // ===== FIN VALIDACIÓN =====
 
             // Guardar estado antes de enviar
             guardarEstadoTabla();
