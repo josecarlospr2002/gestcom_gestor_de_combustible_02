@@ -206,20 +206,12 @@ def lista_solicitudes(request):
     puede_editar = request.user.departamento in ['admin', 'transporte']
     puede_aprobar = request.user.departamento in ['admin', 'director']
 
-    # Verificar si hay una solicitud en proceso (no completada)
-    # Bloquea si hay:
+    # Verificar si hay una solicitud en proceso antes de la aprobación del director
+    # Solo bloquea si hay:
     # - Solicitud en borrador, pendiente o rechazada
-    # - Transferencia pendiente
-    # - Operación de almacén pendiente
-    # - Registro de aseguramiento pendiente o borrador
+    # Una vez aprobada por el director, ya no bloquea (aunque el flujo continúe)
     hay_solicitud_en_proceso = ModeloSolicitud.objects.filter(
         estado__in=['borrador', 'pendiente', 'rechazada']
-    ).exists() or TransferenciaAlmacen.objects.filter(
-        estado='pendiente'
-    ).exists() or RegistroAlmacenAseguramiento.objects.filter(
-        estado__in=['pendiente', 'borrador']
-    ).exists() or OperacionAlmacenProduccion.objects.filter(
-        estado='pendiente'
     ).exists()
 
     # Verificar si hay al menos una solicitud con acciones disponibles para este usuario
@@ -246,30 +238,17 @@ def crear_solicitud(request):
         messages.error(request, 'No tiene permisos para crear solicitudes.')
         return redirect('lista_solicitudes')
 
-    # ===== VALIDACIÓN CORREGIDA =====
-    # Bloquea: borrador, pendiente, rechazada
-    # NO bloquea: aprobada (si ya no hay flujo pendiente)
+    # Solo bloquea si hay una solicitud en borrador, pendiente o rechazada
+    # Una vez aprobada por el director, se puede crear una nueva solicitud
+    # aunque el flujo posterior (transferencia, operación, registro) siga en proceso
     solicitud_en_proceso = ModeloSolicitud.objects.filter(
         estado__in=['borrador', 'pendiente', 'rechazada']
     ).exists()
 
-    transferencia_en_proceso = TransferenciaAlmacen.objects.filter(
-        estado='pendiente'
-    ).exists()
-
-    registro_en_proceso = RegistroAlmacenAseguramiento.objects.filter(
-        estado__in=['pendiente', 'borrador']
-    ).exists()
-
-    operacion_en_proceso = OperacionAlmacenProduccion.objects.filter(
-        estado='pendiente'
-    ).exists()
-
-    if solicitud_en_proceso or transferencia_en_proceso or registro_en_proceso or operacion_en_proceso:
+    if solicitud_en_proceso:
         messages.error(request,
-                       'No se puede crear una nueva solicitud. Existe una solicitud en proceso que debe completar todo su flujo antes de comenzar una nueva.')
+                       'No se puede crear una nueva solicitud. Existe una solicitud pendiente de aprobación por el Director General.')
         return redirect('lista_solicitudes')
-    # ===== FIN VALIDACIÓN =====
 
     clientes = CatalogoCliente.objects.prefetch_related('transportes').all()
 
@@ -368,7 +347,6 @@ def crear_solicitud(request):
 
         total_general = total_consumo + total_venta
 
-        # ===== NUEVA VALIDACIÓN =====
         # Verificar que el total general no exceda la cantidad en Almacén de Producción
         almacen_produccion = AlmacenProduccion.objects.first()
         cantidad_disponible = almacen_produccion.cantidad_actual if almacen_produccion else Decimal('0')
@@ -381,7 +359,6 @@ def crear_solicitud(request):
                 'fecha_hora_temp': fecha_hora,
                 'cantidad_almacen_produccion': cantidad_disponible,
             })
-        # ===== FIN VALIDACIÓN =====
 
         # Crear solicitud
         solicitud = ModeloSolicitud.objects.create(
@@ -596,7 +573,6 @@ def editar_solicitud(request, pk):
 
         total_general = total_consumo + total_venta
 
-        # ===== NUEVA VALIDACIÓN =====
         # Verificar que el total general no exceda la cantidad en Almacén de Producción
         almacen_produccion = AlmacenProduccion.objects.first()
         cantidad_disponible = almacen_produccion.cantidad_actual if almacen_produccion else Decimal('0')
@@ -611,7 +587,6 @@ def editar_solicitud(request, pk):
                 'fecha_hora_temp': fecha_hora,
                 'cantidad_almacen_produccion': cantidad_disponible,
             })
-        # ===== FIN VALIDACIÓN =====
 
         # Actualizar solicitud
         solicitud.fecha_hora = fecha_hora
@@ -718,7 +693,7 @@ def aprobar_solicitud(request, pk):
         estado='pendiente'
     )
 
-    messages.success(request, f'Solicitud #{solicitud.id} aprobada correctamente.')
+    messages.success(request, 'Solicitud aprobada correctamente.')
     return redirect('lista_solicitudes')
 
 
@@ -734,7 +709,7 @@ def rechazar_solicitud(request, pk):
     solicitud.estado = 'rechazada'
     solicitud.motivo_rechazo = request.GET.get('motivo', '')
     solicitud.save()
-    messages.success(request, f'Solicitud #{solicitud.id} rechazada correctamente.')
+    messages.success(request, 'Solicitud rechazada correctamente.')
     return redirect('lista_solicitudes')
 
 
@@ -803,7 +778,7 @@ def confirmar_transferencia(request, pk):
     transferencia.estado = 'transferido'
     transferencia.save()
 
-    messages.success(request, f'Transferencia #{transferencia.id} confirmada correctamente.')
+    messages.success(request, 'Transferencia confirmada correctamente.')
     return redirect('lista_transferencias')
 
 
@@ -995,7 +970,7 @@ def validar_operacion_almacen(request, pk):
                 almacen_aseguramiento.cantidad_actual += transferencia.cantidad_transferida
                 almacen_aseguramiento.save()
 
-    messages.success(request, f'Operación #{operacion.id} validada correctamente.')
+    messages.success(request, 'Operación validada correctamente.')
     return redirect('lista_operaciones_almacen')
 
 
