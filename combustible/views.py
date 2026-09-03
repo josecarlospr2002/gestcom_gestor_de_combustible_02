@@ -945,7 +945,7 @@ def validar_operacion_almacen(request, pk):
                 # Crear el registro en Almacén de Aseguramiento
                 registro = RegistroAlmacenAseguramiento.objects.create(
                     solicitud=transferencia.solicitud,
-                    fecha_hora=transferencia.solicitud.fecha_hora,
+                    fecha_hora=None,
                     cantidad_total_aprobada=transferencia.solicitud.total_general,
                     despacho_real_total=0,
                     estado='pendiente'
@@ -1112,6 +1112,7 @@ def guardar_despacho_real(request, pk):
             registro.total_consumo = total_consumo_sobrante
             registro.total_venta = total_venta_sobrante
             registro.total_existente = total_existente
+            registro.fecha_hora = timezone.now()  # Guardar fecha/hora actual al guardar despachos
             registro.estado = 'borrador'  # Se mantiene como borrador
             registro.save()
 

@@ -246,7 +246,7 @@ class RegistroAlmacenAseguramiento(models.Model):
         related_name='registros_aseguramiento',
         verbose_name='Solicitud'
     )
-    fecha_hora = models.DateTimeField(verbose_name='Fecha y Hora')
+    fecha_hora = models.DateTimeField(null=True, blank=True, verbose_name='Fecha y Hora')
     cantidad_total_aprobada = models.DecimalField(
         max_digits=20,
         decimal_places=2,
@@ -286,7 +286,7 @@ class RegistroAlmacenAseguramiento(models.Model):
     class Meta:
         verbose_name = 'Registro de Almacén de Aseguramiento'
         verbose_name_plural = 'Registros de Almacén de Aseguramiento'
-        ordering = ['-fecha_hora']
+        ordering = ['-id']
 
     def __str__(self):
         return f"Registro #{self.id} - Solicitud #{self.solicitud.id}"
