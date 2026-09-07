@@ -261,7 +261,17 @@ function abrirModalGuardar(transferenciaId) {
         if (datos.cantidadTransferida && datos.cantidadTransferida !== '') {
             document.getElementById('modal-cantidad-transferida').value = datos.cantidadTransferida;
         } else {
-            document.getElementById('modal-cantidad-transferida').value = '';
+            // Calcular automáticamente: Solicitud Aprobada - Saldo en Almacén de Aseguramiento
+            var solicitudAprobada = parseFloat(datos.solicitudAprobada) || 0;
+            var saldoAseguramiento = parseFloat(datos.saldoAseguramiento) || 0;
+            var transferenciaCalculada = solicitudAprobada - saldoAseguramiento;
+            transferenciaCalculada = Math.round(transferenciaCalculada * 100) / 100;
+
+            if (transferenciaCalculada < 0) {
+                document.getElementById('modal-cantidad-transferida').value = 0;
+            } else {
+                document.getElementById('modal-cantidad-transferida').value = transferenciaCalculada.toFixed(2);
+            }
         }
     }
 

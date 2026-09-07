@@ -685,20 +685,50 @@ def aprobar_solicitud(request, pk):
     solicitud.estado = 'aprobada'
     solicitud.save()
 
-    # Crear registro en TransferenciaAlmacen automáticamente
+    # Obtener el almacén de aseguramiento
     almacen_aseguramiento = AlmacenAseguramiento.objects.first()
     if not almacen_aseguramiento:
         almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
 
-    TransferenciaAlmacen.objects.create(
-        solicitud=solicitud,
-        saldo_aseguramiento=almacen_aseguramiento.cantidad_actual,
-        estado='pendiente'
-    )
+    # Verificar si hay suficiente combustible en Almacén de Aseguramiento
+    saldo_aseguramiento = almacen_aseguramiento.cantidad_actual
+    total_solicitud = solicitud.total_general
 
-    messages.success(request, 'Solicitud aprobada correctamente.')
+    if saldo_aseguramiento >= total_solicitud:
+        # Caso especial: Hay suficiente combustible, NO se crea transferencia
+        # Se crea directamente el registro de aseguramiento
+        registro = RegistroAlmacenAseguramiento.objects.create(
+            solicitud=solicitud,
+            fecha_hora=None,
+            cantidad_total_aprobada=total_solicitud,
+            despacho_real_total=0,
+            estado='pendiente'
+        )
+
+        # Crear los despachos reales para cada vehículo
+        detalles_vehiculos = DetalleSolicitudVehiculo.objects.filter(
+            detalle_solicitud__solicitud=solicitud
+        ).select_related('transporte', 'detalle_solicitud__cliente')
+
+        for detalle_vehiculo in detalles_vehiculos:
+            DespachoRealVehiculo.objects.create(
+                registro=registro,
+                detalle_vehiculo=detalle_vehiculo,
+                despacho_real=0
+            )
+
+        messages.success(request, 'Solicitud aprobada correctamente. Hay suficiente combustible en Almacén de Aseguramiento, no se requiere transferencia.')
+    else:
+        # Caso normal: NO hay suficiente combustible, se crea transferencia
+        TransferenciaAlmacen.objects.create(
+            solicitud=solicitud,
+            saldo_aseguramiento=saldo_aseguramiento,
+            estado='pendiente'
+        )
+
+        messages.success(request, 'Solicitud aprobada correctamente.')
+
     return redirect('lista_solicitudes')
-
 
 @login_required
 def rechazar_solicitud(request, pk):
