@@ -177,12 +177,23 @@ class TransferenciaAlmacenForm(forms.ModelForm):
 
         if cantidad_transferida and self.instance and self.instance.pk:
             solicitud = self.instance.solicitud
-            if cantidad_transferida > solicitud.total_general:
+
+            # Calcular cuánto falta realmente por tipo
+            necesita_consumo = solicitud.total_consumo
+            necesita_venta = solicitud.total_venta
+
+            saldo_consumo = self.instance.saldo_consumo
+            saldo_venta = self.instance.saldo_venta
+
+            falta_consumo = max(0, necesita_consumo - saldo_consumo)
+            falta_venta = max(0, necesita_venta - saldo_venta)
+            falta_total = falta_consumo + falta_venta
+
+            if cantidad_transferida > falta_total:
                 self.add_error('cantidad_transferida',
-                               f'La transferencia no puede exceder la Solicitud Aprobada ({solicitud.total_general}).')
+                               f'La transferencia no puede exceder lo que falta ({falta_total}).')
 
         return cleaned_data
-
 
 class OperacionAlmacenProduccionForm(forms.ModelForm):
     class Meta:

@@ -130,19 +130,29 @@ class AlmacenProduccion(models.Model):
 
 
 class AlmacenAseguramiento(models.Model):
-    cantidad_actual = models.DecimalField(
+    cantidad_consumo = models.DecimalField(
         max_digits=20,
         decimal_places=2,
         default=0,
-        verbose_name='Cantidad Actual de Combustible'
+        verbose_name='Cantidad de Consumo'
+    )
+    cantidad_venta = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Cantidad de Venta'
     )
 
     class Meta:
         verbose_name = 'Almacén de Aseguramiento'
         verbose_name_plural = 'Almacén de Aseguramiento'
 
+    @property
+    def cantidad_actual(self):
+        return self.cantidad_consumo + self.cantidad_venta
+
     def __str__(self):
-        return f"Almacén de Aseguramiento - {self.cantidad_actual} L"
+        return f"Almacén de Aseguramiento - Consumo: {self.cantidad_consumo} L, Venta: {self.cantidad_venta} L"
 
 
 class TransferenciaAlmacen(models.Model):
@@ -158,18 +168,38 @@ class TransferenciaAlmacen(models.Model):
         verbose_name='Solicitud Aprobada'
     )
     fecha_hora = models.DateTimeField(null=True, blank=True, verbose_name='Fecha y Hora de Transferencia')
-    saldo_aseguramiento = models.DecimalField(
+    saldo_consumo = models.DecimalField(
         max_digits=20,
         decimal_places=2,
         default=0,
-        verbose_name='Saldo en Almacén de Aseguramiento'
+        verbose_name='Saldo de Consumo en Aseguramiento'
+    )
+    saldo_venta = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        verbose_name='Saldo de Venta en Aseguramiento'
+    )
+    cantidad_consumo_transferida = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Transferencia de Consumo'
+    )
+    cantidad_venta_transferida = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name='Transferencia de Venta'
     )
     cantidad_transferida = models.DecimalField(
         max_digits=20,
         decimal_places=2,
         null=True,
         blank=True,
-        verbose_name='Transferencia'
+        verbose_name='Transferencia Total'
     )
     estado = models.CharField(
         max_length=20,

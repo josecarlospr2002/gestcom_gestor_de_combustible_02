@@ -61,6 +61,7 @@ def crear_cliente(request):
 
     return render(request, 'combustible/crear_cliente.html', {'form': form})
 
+
 @login_required
 def editar_cliente(request, pk):
     if request.user.departamento not in ['admin', 'directivo']:
@@ -688,19 +689,22 @@ def aprobar_solicitud(request, pk):
     # Obtener el almacén de aseguramiento
     almacen_aseguramiento = AlmacenAseguramiento.objects.first()
     if not almacen_aseguramiento:
-        almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
+        almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_consumo=0, cantidad_venta=0)
 
-    # Verificar si hay suficiente combustible en Almacén de Aseguramiento
-    saldo_aseguramiento = almacen_aseguramiento.cantidad_actual
-    total_solicitud = solicitud.total_general
+    # Verificar si hay suficiente combustible por tipo
+    saldo_consumo = almacen_aseguramiento.cantidad_consumo
+    saldo_venta = almacen_aseguramiento.cantidad_venta
 
-    if saldo_aseguramiento >= total_solicitud:
-        # Caso especial: Hay suficiente combustible, NO se crea transferencia
-        # Se crea directamente el registro de aseguramiento
+    necesita_consumo = solicitud.total_consumo
+    necesita_venta = solicitud.total_venta
+
+    # Verificar si hay suficiente de ambos tipos
+    if saldo_consumo >= necesita_consumo and saldo_venta >= necesita_venta:
+        # Caso especial: Hay suficiente combustible de ambos tipos, NO se crea transferencia
         registro = RegistroAlmacenAseguramiento.objects.create(
             solicitud=solicitud,
             fecha_hora=None,
-            cantidad_total_aprobada=total_solicitud,
+            cantidad_total_aprobada=solicitud.total_general,
             despacho_real_total=0,
             estado='pendiente'
         )
@@ -717,16 +721,18 @@ def aprobar_solicitud(request, pk):
                 despacho_real=0
             )
 
-        messages.success(request, 'Solicitud aprobada correctamente. Hay suficiente combustible en Almacén de Aseguramiento, no se requiere transferencia.')
+        messages.success(request,
+                         'Solicitud aprobada correctamente. Hay suficiente combustible en Almacén de Aseguramiento, no se requiere transferencia.')
     else:
-        # Caso normal: NO hay suficiente combustible, se crea transferencia
+        # Caso normal: Falta combustible de algún tipo, se crea transferencia
         TransferenciaAlmacen.objects.create(
             solicitud=solicitud,
-            saldo_aseguramiento=saldo_aseguramiento,
+            saldo_consumo=saldo_consumo,
+            saldo_venta=saldo_venta,
             estado='pendiente'
         )
 
-        messages.success(request, 'Solicitud aprobada correctamente.')
+        messages.success(request, 'Solicitud aprobada correctamente. Se requiere transferencia.')
 
     return redirect('lista_solicitudes')
 
@@ -783,7 +789,28 @@ def guardar_transferencia(request, pk):
     if request.method == 'POST':
         form = TransferenciaAlmacenForm(request.POST, instance=transferencia)
         if form.is_valid():
-            form.save()
+            transferencia = form.save(commit=False)
+
+            # Calcular transferencias por tipo automáticamente
+            solicitud = transferencia.solicitud
+            necesita_consumo = solicitud.total_consumo
+            necesita_venta = solicitud.total_venta
+
+            # Saldo disponible en aseguramiento
+            saldo_consumo = transferencia.saldo_consumo
+            saldo_venta = transferencia.saldo_venta
+
+            # Calcular cuánto falta de cada tipo
+            falta_consumo = max(0, necesita_consumo - saldo_consumo)
+            falta_venta = max(0, necesita_venta - saldo_venta)
+
+            # Asignar las transferencias por tipo
+            transferencia.cantidad_consumo_transferida = falta_consumo
+            transferencia.cantidad_venta_transferida = falta_venta
+            transferencia.cantidad_transferida = falta_consumo + falta_venta
+
+            transferencia.save()
+
             messages.success(request, 'Transferencia guardada correctamente.')
             return redirect('lista_transferencias')
         else:
@@ -791,7 +818,6 @@ def guardar_transferencia(request, pk):
             return redirect('lista_transferencias')
 
     return redirect('lista_transferencias')
-
 
 @login_required
 def confirmar_transferencia(request, pk):
@@ -1004,16 +1030,17 @@ def validar_operacion_almacen(request, pk):
                         despacho_real=0
                     )
 
-                # Actualizar el saldo del Almacén de Aseguramiento
+                # Actualizar el saldo del Almacén de Aseguramiento por tipo
                 almacen_aseguramiento = AlmacenAseguramiento.objects.first()
                 if not almacen_aseguramiento:
-                    almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
-                almacen_aseguramiento.cantidad_actual += transferencia.cantidad_transferida
+                    almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_consumo=0, cantidad_venta=0)
+
+                almacen_aseguramiento.cantidad_consumo += (transferencia.cantidad_consumo_transferida or 0)
+                almacen_aseguramiento.cantidad_venta += (transferencia.cantidad_venta_transferida or 0)
                 almacen_aseguramiento.save()
 
     messages.success(request, 'Operación validada correctamente.')
     return redirect('lista_operaciones_almacen')
-
 
 @login_required
 def eliminar_operacion_almacen(request, pk):
@@ -1316,7 +1343,7 @@ def confirmar_registro_aseguramiento(request, pk):
         return redirect('lista_registros_aseguramiento')
 
     registro = get_object_or_404(RegistroAlmacenAseguramiento, pk=pk)
-    if registro.estado != 'borrador':  # Cambiado de 'pendiente' a 'borrador'
+    if registro.estado != 'borrador':
         messages.error(request, 'Este registro no se puede confirmar.')
         return redirect('lista_registros_aseguramiento')
 
@@ -1337,8 +1364,13 @@ def confirmar_registro_aseguramiento(request, pk):
     # Actualizar el saldo del Almacén de Aseguramiento
     almacen_aseguramiento = AlmacenAseguramiento.objects.first()
     if not almacen_aseguramiento:
-        almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
-    almacen_aseguramiento.cantidad_actual = registro.total_existente
+        almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_consumo=0, cantidad_venta=0)
+
+    # Restar el despacho real total (mantener proporción por tipo)
+    # Como ya se calculó total_consumo y total_venta en guardar_despacho_real,
+    # el sobrante queda en total_consumo y total_venta
+    almacen_aseguramiento.cantidad_consumo = registro.total_consumo
+    almacen_aseguramiento.cantidad_venta = registro.total_venta
     almacen_aseguramiento.save()
 
     messages.success(request, 'Registro confirmado correctamente.')

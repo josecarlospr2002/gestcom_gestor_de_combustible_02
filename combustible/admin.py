@@ -6,7 +6,7 @@ from .models import CatalogoCliente, Transporte, ModeloSolicitud, DetalleSolicit
 
 @admin.register(CatalogoCliente)
 class CatalogoClienteAdmin(admin.ModelAdmin):
-    list_display = ('cliente', 'clasificacion', 'no_contrato')
+    list_display = ('cliente', 'clasificacion', 'no_contrato', 'descripcion')
     list_filter = ('clasificacion',)
     search_fields = ('cliente', 'no_contrato')
 
@@ -43,12 +43,14 @@ class AlmacenProduccionAdmin(admin.ModelAdmin):
 
 @admin.register(AlmacenAseguramiento)
 class AlmacenAseguramientoAdmin(admin.ModelAdmin):
-    list_display = ('cantidad_actual',)
+    list_display = ('cantidad_consumo', 'cantidad_venta')
 
 
 @admin.register(TransferenciaAlmacen)
 class TransferenciaAlmacenAdmin(admin.ModelAdmin):
-    list_display = ('id', 'solicitud', 'fecha_hora', 'saldo_aseguramiento', 'cantidad_transferida', 'estado')
+    list_display = ('id', 'solicitud', 'fecha_hora', 'saldo_consumo', 'saldo_venta',
+                    'cantidad_consumo_transferida', 'cantidad_venta_transferida',
+                    'cantidad_transferida', 'estado')
     list_filter = ('estado', 'fecha_hora')
     search_fields = ('solicitud__id',)
 
