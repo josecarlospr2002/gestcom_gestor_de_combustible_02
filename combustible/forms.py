@@ -9,7 +9,7 @@ from django.utils import timezone
 class CatalogoClienteForm(forms.ModelForm):
     class Meta:
         model = CatalogoCliente
-        fields = ['cliente', 'clasificacion', 'no_contrato']
+        fields = ['cliente', 'clasificacion', 'no_contrato', 'descripcion']
         widgets = {
             'cliente': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -22,12 +22,23 @@ class CatalogoClienteForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Ingrese el número de contrato',
             }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Escriba una descripción u observación (opcional)',
+                'rows': 3,
+            }),
         }
         labels = {
             'cliente': 'Cliente',
             'clasificacion': 'Clasificación',
             'no_contrato': 'No. Contrato',
+            'descripcion': 'Descripción',
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Hacer que descripción sea opcional
+        self.fields['descripcion'].required = False
 
     def clean_cliente(self):
         cliente = self.cleaned_data.get('cliente')

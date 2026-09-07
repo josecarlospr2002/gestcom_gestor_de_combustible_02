@@ -46,6 +46,8 @@ def crear_cliente(request):
         return redirect('lista_clientes')
     if request.method == 'POST':
         form = CatalogoClienteForm(request.POST)
+        # Ocultar el campo descripcion al crear
+        form.fields.pop('descripcion', None)
         if form.is_valid():
             form.save()
             messages.success(request, 'Cliente agregado correctamente.')
@@ -54,9 +56,10 @@ def crear_cliente(request):
             messages.error(request, 'Por favor, corrija los errores señalados.')
     else:
         form = CatalogoClienteForm()
+        # Ocultar el campo descripcion al crear
+        form.fields.pop('descripcion', None)
 
     return render(request, 'combustible/crear_cliente.html', {'form': form})
-
 
 @login_required
 def editar_cliente(request, pk):

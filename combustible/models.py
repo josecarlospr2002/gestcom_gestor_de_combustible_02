@@ -21,6 +21,11 @@ class CatalogoCliente(models.Model):
         null=True,
         verbose_name='No. Contrato'
     )
+    descripcion = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Descripción'
+    )
 
     class Meta:
         verbose_name = 'Catálogo de Cliente'
