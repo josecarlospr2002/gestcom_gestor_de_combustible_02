@@ -842,7 +842,8 @@ def crear_operacion_almacen(request):
             transferencia += t.cantidad_transferida
 
     if request.method == 'POST':
-        form = OperacionAlmacenProduccionForm(request.POST)
+        form = OperacionAlmacenProduccionForm(request.POST,
+                                              initial={'existencia': existencia, 'transferencia': transferencia})
         if form.is_valid():
             operacion = form.save(commit=False)
             # Si están vacíos, poner 0
@@ -861,7 +862,7 @@ def crear_operacion_almacen(request):
         else:
             messages.error(request, 'Por favor, corrija los errores señalados.')
     else:
-        form = OperacionAlmacenProduccionForm()
+        form = OperacionAlmacenProduccionForm(initial={'existencia': existencia, 'transferencia': transferencia})
 
     return render(request, 'combustible/crear_operacion_almacen.html', {
         'form': form,
@@ -882,7 +883,11 @@ def editar_operacion_almacen(request, pk):
         return redirect('lista_operaciones_almacen')
 
     if request.method == 'POST':
-        form = OperacionAlmacenProduccionForm(request.POST, instance=operacion)
+        form = OperacionAlmacenProduccionForm(
+            request.POST,
+            instance=operacion,
+            initial={'existencia': operacion.existencia, 'transferencia': operacion.transferencia}
+        )
         if form.is_valid():
             operacion = form.save(commit=False)
             # Si están vacíos, poner 0
@@ -898,7 +903,10 @@ def editar_operacion_almacen(request, pk):
         else:
             messages.error(request, 'Por favor, corrija los errores señalados.')
     else:
-        form = OperacionAlmacenProduccionForm(instance=operacion)
+        form = OperacionAlmacenProduccionForm(
+            instance=operacion,
+            initial={'existencia': operacion.existencia, 'transferencia': operacion.transferencia}
+        )
 
     return render(request, 'combustible/editar_operacion_almacen.html', {
         'form': form,
@@ -1147,7 +1155,7 @@ def guardar_despacho_real(request, pk):
 
 @login_required
 def lista_resultados_aseguramiento(request):
-    if request.user.departamento not in ['admin', 'almacen', 'director', 'directivo']:
+    if request.user.departamento not in ['admin', 'almacen', 'director', 'directivo', 'transporte']:
         messages.error(request, 'No tiene permisos para ver los resultados.')
         return redirect('dashboard')
 

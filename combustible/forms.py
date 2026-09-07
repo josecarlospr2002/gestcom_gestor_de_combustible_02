@@ -238,6 +238,40 @@ class OperacionAlmacenProduccionForm(forms.ModelForm):
             raise forms.ValidationError('La generación no puede ser negativa.')
         return generacion
 
+    def clean(self):
+        cleaned_data = super().clean()
+        generacion = cleaned_data.get('generacion')
+        entrada_factura = cleaned_data.get('entrada_factura')
+
+        # Obtener la existencia según el caso
+        if self.instance and self.instance.pk:
+            # Si es edición, usar la existencia guardada
+            existencia = self.instance.existencia
+        else:
+            # Si es nueva operación, buscar en self.initial o en cleaned_data
+            existencia = self.initial.get('existencia', None)
+            if existencia is None:
+                existencia = cleaned_data.get('existencia', 0)
+
+        # Validar que la generación no sea mayor que la existencia
+        if generacion is not None and existencia is not None:
+            if generacion > existencia:
+                self.add_error('generacion',
+                               f'La Generación no puede ser mayor que la Existencia ({existencia}).')
+
+        # Validar que la nueva existencia no sea negativa
+        if generacion is not None and entrada_factura is not None and existencia is not None:
+            transferencia = self.initial.get('transferencia', 0)
+            if transferencia is None:
+                transferencia = 0
+
+            nueva_existencia = (existencia + (entrada_factura or 0)) - generacion - transferencia
+            if nueva_existencia < 0:
+                self.add_error('generacion',
+                               f'La Generación ({generacion}) más la Transferencia ({transferencia}) no pueden superar la Existencia ({existencia}) más la Entrada por Factura ({entrada_factura or 0}).')
+
+        return cleaned_data
+
 
 class ResultadoAlmacenAseguramientoForm(forms.ModelForm):
     class Meta:
