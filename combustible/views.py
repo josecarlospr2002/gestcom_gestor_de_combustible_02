@@ -1029,6 +1029,28 @@ def validar_operacion_almacen(request, pk):
                 almacen_aseguramiento.cantidad_venta += falta_venta
                 almacen_aseguramiento.save()
 
+                # Crear descripción detallada
+                descripcion = f"""TRANSFERENCIA DESDE ALMACÉN DE PRODUCCIÓN
+
+                SOLICITUD APROBADA:
+                • Consumo: {solicitud.total_consumo} L
+                • Venta: {solicitud.total_venta} L
+                • Total: {solicitud.total_general} L
+
+                SALDO ANTERIOR EN ASEGURAMIENTO:
+                • Consumo: {saldo_consumo_actual} L
+                • Venta: {saldo_venta_actual} L
+                • Total: {saldo_consumo_actual + saldo_venta_actual} L
+
+                CANTIDAD TRANSFERIDA: {transferencia.cantidad_transferida} L
+                • Para Consumo: {falta_consumo} L
+                • Para Venta: {falta_venta} L
+
+                NUEVO SALDO EN ASEGURAMIENTO:
+                • Consumo: {almacen_aseguramiento.cantidad_consumo} L
+                • Venta: {almacen_aseguramiento.cantidad_venta} L
+                • Total: {almacen_aseguramiento.cantidad_actual} L"""
+
                 # Crear resultado automáticamente
                 ResultadoAlmacenAseguramiento.objects.create(
                     registro=None,
@@ -1036,7 +1058,7 @@ def validar_operacion_almacen(request, pk):
                     total_consumo=almacen_aseguramiento.cantidad_consumo,
                     total_venta=almacen_aseguramiento.cantidad_venta,
                     total_existente=almacen_aseguramiento.cantidad_actual,
-                    descripcion=f'Transferencia desde Almacén de Producción - Solicitud #{solicitud.id}',
+                    descripcion=descripcion,
                     estado='confirmado'
                 )
 
