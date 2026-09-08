@@ -1372,27 +1372,66 @@ def confirmar_registro_aseguramiento(request, pk):
         messages.error(request, 'Este registro no se puede confirmar.')
         return redirect('lista_registros_aseguramiento')
 
-    # Cambiar estado a despachado
-    registro.estado = 'despachado'
-    registro.save()
+    # Obtener la solicitud asociada
+    solicitud = registro.solicitud
 
-    # Obtener el almacén de aseguramiento
+    # Guardar saldos antes del despacho (para la descripción)
     almacen_aseguramiento = AlmacenAseguramiento.objects.first()
     if not almacen_aseguramiento:
         almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_consumo=0, cantidad_venta=0)
+
+    saldo_consumo_anterior = almacen_aseguramiento.cantidad_consumo
+    saldo_venta_anterior = almacen_aseguramiento.cantidad_venta
+
+    # Cambiar estado a despachado
+    registro.estado = 'despachado'
+    registro.save()
 
     # Restar lo despachado por tipo
     almacen_aseguramiento.cantidad_consumo -= registro.total_consumo
     almacen_aseguramiento.cantidad_venta -= registro.total_venta
     almacen_aseguramiento.save()
 
-    # Crear registro de resultado automáticamente con el NUEVO saldo
+    # Calcular sobrantes del despacho
+    sobrante_consumo = solicitud.total_consumo - registro.total_consumo
+    sobrante_venta = solicitud.total_venta - registro.total_venta
+
+    # descripción detallada
+    descripcion = f"""DESPACHO REALIZADO
+
+SOLICITUD APROBADA:
+• Consumo: {solicitud.total_consumo} L
+• Venta: {solicitud.total_venta} L
+• Total: {solicitud.total_general} L
+
+DESPACHO REALIZADO:
+• Consumo: {registro.total_consumo} L
+• Venta: {registro.total_venta} L
+• Total Despachado: {registro.despacho_real_total} L
+
+SOBRANTE DEL DESPACHO:
+• Consumo: {sobrante_consumo} L
+• Venta: {sobrante_venta} L
+• Total Sobrante: {sobrante_consumo + sobrante_venta} L
+
+SALDO ANTERIOR EN ASEGURAMIENTO:
+• Consumo: {saldo_consumo_anterior} L
+• Venta: {saldo_venta_anterior} L
+• Total: {saldo_consumo_anterior + saldo_venta_anterior} L
+
+SALDO ACTUAL EN ASEGURAMIENTO:
+• Consumo: {almacen_aseguramiento.cantidad_consumo} L
+• Venta: {almacen_aseguramiento.cantidad_venta} L
+• Total: {almacen_aseguramiento.cantidad_actual} L"""
+
+    # Crear registro de resultado automáticamente con el nuevo saldo
     ResultadoAlmacenAseguramiento.objects.create(
         registro=registro,
         fecha_hora=timezone.now(),
         total_consumo=almacen_aseguramiento.cantidad_consumo,
         total_venta=almacen_aseguramiento.cantidad_venta,
         total_existente=almacen_aseguramiento.cantidad_actual,
+        descripcion=descripcion,
         estado='confirmado'
     )
 
