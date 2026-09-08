@@ -168,38 +168,18 @@ class TransferenciaAlmacen(models.Model):
         verbose_name='Solicitud Aprobada'
     )
     fecha_hora = models.DateTimeField(null=True, blank=True, verbose_name='Fecha y Hora de Transferencia')
-    saldo_consumo = models.DecimalField(
+    saldo_aseguramiento = models.DecimalField(
         max_digits=20,
         decimal_places=2,
         default=0,
-        verbose_name='Saldo de Consumo en Aseguramiento'
-    )
-    saldo_venta = models.DecimalField(
-        max_digits=20,
-        decimal_places=2,
-        default=0,
-        verbose_name='Saldo de Venta en Aseguramiento'
-    )
-    cantidad_consumo_transferida = models.DecimalField(
-        max_digits=20,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        verbose_name='Transferencia de Consumo'
-    )
-    cantidad_venta_transferida = models.DecimalField(
-        max_digits=20,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        verbose_name='Transferencia de Venta'
+        verbose_name='Saldo en Almacén de Aseguramiento'
     )
     cantidad_transferida = models.DecimalField(
         max_digits=20,
         decimal_places=2,
         null=True,
         blank=True,
-        verbose_name='Transferencia Total'
+        verbose_name='Transferencia'
     )
     estado = models.CharField(
         max_length=20,
@@ -215,7 +195,6 @@ class TransferenciaAlmacen(models.Model):
 
     def __str__(self):
         return f"Transferencia #{self.id} - Solicitud #{self.solicitud.id}"
-
 
 class OperacionAlmacenProduccion(models.Model):
     ESTADOS_OPERACION = [

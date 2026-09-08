@@ -48,9 +48,7 @@ class AlmacenAseguramientoAdmin(admin.ModelAdmin):
 
 @admin.register(TransferenciaAlmacen)
 class TransferenciaAlmacenAdmin(admin.ModelAdmin):
-    list_display = ('id', 'solicitud', 'fecha_hora', 'saldo_consumo', 'saldo_venta',
-                    'cantidad_consumo_transferida', 'cantidad_venta_transferida',
-                    'cantidad_transferida', 'estado')
+    list_display = ('id', 'solicitud', 'fecha_hora', 'saldo_aseguramiento', 'cantidad_transferida', 'estado')
     list_filter = ('estado', 'fecha_hora')
     search_fields = ('solicitud__id',)
 
