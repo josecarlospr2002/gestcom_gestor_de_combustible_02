@@ -1131,8 +1131,8 @@ def guardar_despacho_real(request, pk):
 
     if request.method == 'POST':
         total_despacho = Decimal('0')
-        total_consumo_sobrante = Decimal('0')
-        total_venta_sobrante = Decimal('0')
+        total_consumo_despachado = Decimal('0')
+        total_venta_despachado = Decimal('0')
         hay_error = False
         error_despacho_id = None
 
@@ -1161,13 +1161,12 @@ def guardar_despacho_real(request, pk):
                 despacho.save()
                 total_despacho += cantidad
 
-                sobrante = despacho.detalle_vehiculo.cant_abastecer - cantidad
                 clasificacion = despacho.detalle_vehiculo.detalle_solicitud.cliente.clasificacion
 
                 if clasificacion == 'venta':
-                    total_venta_sobrante += sobrante
+                    total_venta_despachado += cantidad
                 else:
-                    total_consumo_sobrante += sobrante
+                    total_consumo_despachado += cantidad
 
             except InvalidOperation:
                 hay_error = True
@@ -1176,18 +1175,13 @@ def guardar_despacho_real(request, pk):
                 break
 
         if not hay_error:
-            total_existente = total_consumo_sobrante + total_venta_sobrante
-
             registro.despacho_real_total = total_despacho
-            registro.total_consumo = total_consumo_sobrante
-            registro.total_venta = total_venta_sobrante
-            registro.total_existente = total_existente
-            registro.fecha_hora = timezone.now()  # Guardar fecha/hora actual al guardar despachos
-            registro.estado = 'borrador'  # Se mantiene como borrador
+            registro.total_consumo = total_consumo_despachado  # Total DESPACHADO de consumo
+            registro.total_venta = total_venta_despachado  # Total DESPACHADO de venta
+            registro.total_existente = total_despacho  # Total despachado (para referencia)
+            registro.fecha_hora = timezone.now()
+            registro.estado = 'borrador'
             registro.save()
-
-            # NO se crea ResultadoAlmacenAseguramiento
-            # NO se actualiza el saldo del Almacén
 
             messages.success(request, 'Despachos guardados correctamente. Pendiente de confirmar.')
             return redirect('lista_registros_aseguramiento')
@@ -1353,27 +1347,25 @@ def confirmar_registro_aseguramiento(request, pk):
     registro.estado = 'despachado'
     registro.save()
 
-    # Crear registro de resultado automáticamente
-    ResultadoAlmacenAseguramiento.objects.create(
-        registro=registro,
-        fecha_hora=registro.fecha_hora,
-        total_consumo=registro.total_consumo,
-        total_venta=registro.total_venta,
-        total_existente=registro.total_existente,
-        estado='confirmado'
-    )
-
-    # Actualizar el saldo del Almacén de Aseguramiento
+    # Obtener el almacén de aseguramiento
     almacen_aseguramiento = AlmacenAseguramiento.objects.first()
     if not almacen_aseguramiento:
         almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_consumo=0, cantidad_venta=0)
 
-    # Restar el despacho real total (mantener proporción por tipo)
-    # Como ya se calculó total_consumo y total_venta en guardar_despacho_real,
-    # el sobrante queda en total_consumo y total_venta
-    almacen_aseguramiento.cantidad_consumo = registro.total_consumo
-    almacen_aseguramiento.cantidad_venta = registro.total_venta
+    # Restar lo despachado por tipo
+    almacen_aseguramiento.cantidad_consumo -= registro.total_consumo
+    almacen_aseguramiento.cantidad_venta -= registro.total_venta
     almacen_aseguramiento.save()
+
+    # Crear registro de resultado automáticamente con el NUEVO saldo
+    ResultadoAlmacenAseguramiento.objects.create(
+        registro=registro,
+        fecha_hora=timezone.now(),
+        total_consumo=almacen_aseguramiento.cantidad_consumo,
+        total_venta=almacen_aseguramiento.cantidad_venta,
+        total_existente=almacen_aseguramiento.cantidad_actual,
+        estado='confirmado'
+    )
 
     messages.success(request, 'Registro confirmado correctamente.')
     return redirect('lista_registros_aseguramiento')
