@@ -691,16 +691,23 @@ def aprobar_solicitud(request, pk):
     if not almacen_aseguramiento:
         almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_consumo=0, cantidad_venta=0)
 
-    # Verificar si hay suficiente combustible TOTAL en Almacén de Aseguramiento
-    saldo_total = almacen_aseguramiento.cantidad_actual
-    total_solicitud = solicitud.total_general
+    # Calcular cuánto falta de cada tipo
+    necesita_consumo = solicitud.total_consumo
+    necesita_venta = solicitud.total_venta
 
-    if saldo_total >= total_solicitud:
-        # Caso especial: Hay suficiente combustible, NO se crea transferencia
+    saldo_consumo = almacen_aseguramiento.cantidad_consumo
+    saldo_venta = almacen_aseguramiento.cantidad_venta
+
+    falta_consumo = max(0, necesita_consumo - saldo_consumo)
+    falta_venta = max(0, necesita_venta - saldo_venta)
+    falta_total = falta_consumo + falta_venta
+
+    if falta_total == 0:
+        # Caso especial: Hay suficiente combustible por tipo, NO se crea transferencia
         registro = RegistroAlmacenAseguramiento.objects.create(
             solicitud=solicitud,
             fecha_hora=None,
-            cantidad_total_aprobada=total_solicitud,
+            cantidad_total_aprobada=solicitud.total_general,
             despacho_real_total=0,
             estado='pendiente'
         )
@@ -720,10 +727,10 @@ def aprobar_solicitud(request, pk):
         messages.success(request,
                          'Solicitud aprobada correctamente. Hay suficiente combustible en Almacén de Aseguramiento, no se requiere transferencia.')
     else:
-        # Caso normal: NO hay suficiente combustible, se crea transferencia
+        # Caso normal: Falta combustible, se crea transferencia
         TransferenciaAlmacen.objects.create(
             solicitud=solicitud,
-            saldo_aseguramiento=saldo_total,
+            saldo_aseguramiento=falta_total,
             estado='pendiente'
         )
 

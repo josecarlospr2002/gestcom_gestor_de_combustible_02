@@ -176,15 +176,11 @@ class TransferenciaAlmacenForm(forms.ModelForm):
         cantidad_transferida = cleaned_data.get('cantidad_transferida')
 
         if cantidad_transferida and self.instance and self.instance.pk:
-            solicitud = self.instance.solicitud
-            saldo_aseguramiento = self.instance.saldo_aseguramiento
-
-            # Calcular cuánto falta en total
-            falta_total = max(0, solicitud.total_general - saldo_aseguramiento)
+            falta_total = self.instance.saldo_aseguramiento  # Ya viene calculado correctamente
 
             if cantidad_transferida > falta_total:
                 self.add_error('cantidad_transferida',
-                               f'La transferencia no puede exceder lo que falta ({falta_total}).')
+                               f'La transferencia no puede exceder lo requerido ({falta_total}).')
 
         return cleaned_data
 

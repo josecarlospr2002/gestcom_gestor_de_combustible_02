@@ -61,7 +61,7 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                 <tr>
                     <th>Fecha / Hora</th>
                     <th>Solicitud Aprobada</th>
-                    <th>Saldo en Almacén de Aseguramiento</th>
+                    <th>Transferencia Requerida</th>
                     <th>Transferencia</th>
                     <th>Estado</th>
                     {% if hay_acciones %}
@@ -161,7 +161,7 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                         <input type="text" class="form-control" id="modal-solicitud-aprobada" readonly>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold text-secondary">Saldo en Almacén de Aseguramiento</label>
+                        <label class="form-label fw-bold text-secondary">Transferencia Requerida</label>
                         <input type="text" class="form-control" id="modal-saldo-aseguramiento" readonly>
                     </div>
                     <div class="mb-4">
@@ -169,7 +169,7 @@ body { background: linear-gradient(135deg, #bcc7ff, #ddbeff); }
                         <input type="number" name="cantidad_transferida" id="modal-cantidad-transferida" class="form-control"
                                placeholder="0.00" step="0.01" min="0.01" required>
                         <div id="error-cantidad" class="error-message" style="display: none;">
-                            La transferencia no puede exceder lo que falta.
+                            La transferencia no puede exceder lo requerido.
                         </div>
                     </div>
                     <div class="d-flex justify-content-between">
@@ -219,7 +219,7 @@ var transferenciasData = {
     {% for transferencia in transferencias %}
     "{{ transferencia.id }}": {
         solicitudAprobada: "{{ transferencia.solicitud.total_general|floatformat:2 }}".replace(',', '.'),
-        saldoAseguramiento: "{{ transferencia.saldo_aseguramiento|floatformat:2 }}".replace(',', '.'),
+        transferenciaRequerida: "{{ transferencia.saldo_aseguramiento|floatformat:2 }}".replace(',', '.'),
         fechaHora: "{% if transferencia.fecha_hora %}{{ transferencia.fecha_hora|date:'Y-m-d\TH:i' }}{% endif %}",
         cantidadTransferida: "{% if transferencia.cantidad_transferida %}{{ transferencia.cantidad_transferida|floatformat:2 }}{% endif %}".replace(',', '.')
     }{% if not forloop.last %},{% endif %}
@@ -255,18 +255,16 @@ function abrirModalGuardar(transferenciaId) {
     // Establecer valores de solo lectura
     if (datos) {
         document.getElementById('modal-solicitud-aprobada').value = datos.solicitudAprobada;
-        document.getElementById('modal-saldo-aseguramiento').value = datos.saldoAseguramiento;
+        document.getElementById('modal-saldo-aseguramiento').value = datos.transferenciaRequerida;
 
-        // Calcular cuánto falta
-        var solicitudAprobada = parseFloat(datos.solicitudAprobada) || 0;
-        var saldoAseguramiento = parseFloat(datos.saldoAseguramiento) || 0;
-        var faltaTotal = Math.max(0, solicitudAprobada - saldoAseguramiento);
+        // La transferencia requerida ya viene calculada del backend
+        var transferenciaRequerida = parseFloat(datos.transferenciaRequerida) || 0;
 
         // Mantener el valor de cantidad transferida si existe
         if (datos.cantidadTransferida && datos.cantidadTransferida !== '') {
             document.getElementById('modal-cantidad-transferida').value = datos.cantidadTransferida;
         } else {
-            document.getElementById('modal-cantidad-transferida').value = faltaTotal.toFixed(2);
+            document.getElementById('modal-cantidad-transferida').value = transferenciaRequerida.toFixed(2);
         }
     }
 
@@ -294,18 +292,16 @@ document.getElementById('form-transferencia').addEventListener('submit', functio
         }
     }
 
-    // Validar cantidad no exceda lo que falta
+    // Validar cantidad no exceda lo requerido
     var cantidadInput = document.getElementById('modal-cantidad-transferida').value;
     var cantidad = parseFloat(cantidadInput) || 0;
 
-    var solicitudAprobada = parseFloat(document.getElementById('modal-solicitud-aprobada').value) || 0;
-    var saldoAseguramiento = parseFloat(document.getElementById('modal-saldo-aseguramiento').value) || 0;
-    var faltaTotal = Math.max(0, solicitudAprobada - saldoAseguramiento);
+    var transferenciaRequerida = parseFloat(document.getElementById('modal-saldo-aseguramiento').value) || 0;
 
     console.log('Cantidad:', cantidad);
-    console.log('Falta Total:', faltaTotal);
+    console.log('Transferencia Requerida:', transferenciaRequerida);
 
-    if (cantidad > faltaTotal) {
+    if (cantidad > transferenciaRequerida) {
         document.getElementById('error-cantidad').style.display = 'block';
         hayError = true;
     } else {
