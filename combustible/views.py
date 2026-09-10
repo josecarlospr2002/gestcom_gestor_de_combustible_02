@@ -28,11 +28,12 @@ def dashboard(request):
 # Vistas para Catálogo de Cliente
 @login_required
 def lista_clientes(request):
-    if request.user.departamento not in ['admin', 'transporte', 'directivo', 'director']:
+    if request.user.departamento not in ['admin', 'transporte', 'director', 'director_aseguramiento',
+                                         'director_contabilidad', 'director_produccion']:
         messages.error(request, 'No tiene permisos para ver el catálogo de clientes.')
         return redirect('dashboard')
     clientes = CatalogoCliente.objects.all()
-    puede_editar = request.user.departamento in ['admin', 'directivo']
+    puede_editar = request.user.departamento in ['admin', 'director_aseguramiento', 'director_contabilidad']
     return render(request, 'combustible/lista_clientes.html', {
         'clientes': clientes,
         'puede_editar': puede_editar,
@@ -64,7 +65,7 @@ def crear_cliente(request):
 
 @login_required
 def editar_cliente(request, pk):
-    if request.user.departamento not in ['admin', 'directivo']:
+    if request.user.departamento not in ['admin', 'director_aseguramiento', 'director_contabilidad']:
         messages.error(request, 'No tiene permisos para modificar clientes.')
         return redirect('lista_clientes')
     cliente = get_object_or_404(CatalogoCliente, pk=pk)
@@ -188,7 +189,8 @@ def eliminar_vehiculo(request, pk):
 
 @login_required
 def ver_cliente(request, pk):
-    if request.user.departamento not in ['admin', 'transporte', 'directivo', 'director']:
+    if request.user.departamento not in ['admin', 'transporte', 'director_aseguramiento', 'director_contabilidad',
+                                         'director']:
         messages.error(request, 'No tiene permisos para ver este cliente.')
         return redirect('dashboard')
     cliente = get_object_or_404(CatalogoCliente, pk=pk)
@@ -203,7 +205,8 @@ def ver_cliente(request, pk):
 
 @login_required
 def lista_solicitudes(request):
-    if request.user.departamento not in ['admin', 'transporte', 'directivo', 'director', 'almacen']:
+    if request.user.departamento not in ['admin', 'transporte', 'director', 'almacen', 'director_aseguramiento',
+                                         'director_contabilidad']:
         messages.error(request, 'No tiene permisos para ver las solicitudes.')
         return redirect('dashboard')
     solicitudes = ModeloSolicitud.objects.all()
@@ -414,7 +417,8 @@ def crear_solicitud(request):
 
 @login_required
 def ver_solicitud(request, pk):
-    if request.user.departamento not in ['admin', 'transporte', 'directivo', 'director', 'almacen']:
+    if request.user.departamento not in ['admin', 'transporte', 'director', 'almacen', 'director_aseguramiento',
+                                         'director_contabilidad']:
         messages.error(request, 'No tiene permisos para ver esta solicitud.')
         return redirect('dashboard')
     solicitud = get_object_or_404(ModeloSolicitud, pk=pk)
@@ -758,14 +762,14 @@ def rechazar_solicitud(request, pk):
 # Vistas para Transferencia entre Almacenes
 @login_required
 def lista_transferencias(request):
-    if request.user.departamento not in ['admin', 'petroleo', 'director', 'directivo']:
+    if request.user.departamento not in ['admin', 'petroleo', 'director', 'director_produccion']:
         messages.error(request, 'No tiene permisos para ver las transferencias.')
         return redirect('dashboard')
 
     transferencias = TransferenciaAlmacen.objects.select_related('solicitud').all().order_by('-id')
     almacen_aseguramiento = AlmacenAseguramiento.objects.first()
     if not almacen_aseguramiento:
-        almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_actual=0)
+        almacen_aseguramiento = AlmacenAseguramiento.objects.create(cantidad_consumo=0, cantidad_venta=0)
 
     puede_editar = request.user.departamento in ['admin', 'petroleo']
     hay_acciones = puede_editar and transferencias.filter(estado='pendiente',
@@ -827,7 +831,7 @@ def confirmar_transferencia(request, pk):
 # Vistas para Operaciones de Almacén de Producción
 @login_required
 def lista_operaciones_almacen(request):
-    if request.user.departamento not in ['admin', 'petroleo', 'director', 'directivo']:
+    if request.user.departamento not in ['admin', 'petroleo', 'director', 'director_produccion']:
         messages.error(request, 'No tiene permisos para ver las operaciones del almacén.')
         return redirect('dashboard')
 
@@ -1092,7 +1096,8 @@ def eliminar_operacion_almacen(request, pk):
 # Vistas para Almacén de Aseguramiento
 @login_required
 def lista_registros_aseguramiento(request):
-    if request.user.departamento not in ['admin', 'almacen', 'director', 'directivo', 'transporte']:
+    if request.user.departamento not in ['admin', 'almacen', 'director', 'transporte', 'director_aseguramiento',
+                                         'director_contabilidad']:
         messages.error(request, 'No tiene permisos para ver el Almacén de Aseguramiento.')
         return redirect('dashboard')
 
@@ -1114,7 +1119,8 @@ def lista_registros_aseguramiento(request):
 
 @login_required
 def ver_registro_aseguramiento(request, pk):
-    if request.user.departamento not in ['admin', 'almacen', 'director', 'directivo', 'transporte']:
+    if request.user.departamento not in ['admin', 'almacen', 'director', 'transporte', 'director_aseguramiento',
+                                         'director_contabilidad']:
         messages.error(request, 'No tiene permisos para ver este registro.')
         return redirect('lista_registros_aseguramiento')
 
@@ -1240,7 +1246,8 @@ def guardar_despacho_real(request, pk):
 
 @login_required
 def lista_resultados_aseguramiento(request):
-    if request.user.departamento not in ['admin', 'almacen', 'director', 'directivo', 'transporte']:
+    if request.user.departamento not in ['admin', 'almacen', 'director', 'director_aseguramiento',
+                                         'director_contabilidad', 'transporte']:
         messages.error(request, 'No tiene permisos para ver los resultados.')
         return redirect('dashboard')
 

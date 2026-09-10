@@ -9,11 +9,13 @@ class Usuario(AbstractUser):
         ('petroleo', 'Departamento de Petróleo'),
         ('almacen', 'Almacén'),
         ('director', 'Director General'),
-        ('directivo', 'Directivo'),
+        ('director_aseguramiento', 'Director de Aseguramiento'),
+        ('director_contabilidad', 'Director de Contab. y Finanzas'),
+        ('director_produccion', 'Director de Producción'),
     ]
 
     departamento = models.CharField(
-        max_length=20,
+        max_length=30,
         choices=DEPARTAMENTOS,
         default='transporte',
         verbose_name='Departamento / Rol'
