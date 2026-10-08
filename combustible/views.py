@@ -852,6 +852,7 @@ def lista_operaciones_almacen(request):
 
 
 @login_required
+@login_required
 def crear_operacion_almacen(request):
     if request.user.departamento not in ['admin', 'petroleo']:
         messages.error(request, 'No tiene permisos para crear operaciones.')
@@ -864,6 +865,14 @@ def crear_operacion_almacen(request):
     almacen = AlmacenProduccion.objects.first()
     if not almacen:
         almacen = AlmacenProduccion.objects.create(cantidad_actual=0)
+
+    # Detectar si es la PRIMERA VEZ:
+    # - No existe ninguna operación registrada (ni pendiente ni validada)
+    # - Y el almacén está en 0
+    es_primera_vez = (
+        OperacionAlmacenProduccion.objects.count() == 0
+        and almacen.cantidad_actual == 0
+    )
 
     # Determinar la existencia actual
     if ultima_operacion:
@@ -888,6 +897,55 @@ def crear_operacion_almacen(request):
             transferencia += t.cantidad_transferida
 
     if request.method == 'POST':
+        # Si es la primera vez, leer la existencia del POST
+        if es_primera_vez:
+            existencia_str = request.POST.get('existencia', '').strip()
+
+            # Si está vacío, error
+            if not existencia_str:
+                messages.error(request, 'Debe introducir la existencia inicial del Almacén de Producción.')
+                form = OperacionAlmacenProduccionForm(
+                    request.POST,
+                    initial={'existencia': existencia, 'transferencia': transferencia}
+                )
+                return render(request, 'combustible/crear_operacion_almacen.html', {
+                    'form': form,
+                    'existencia': existencia,
+                    'transferencia': transferencia,
+                    'es_primera_vez': es_primera_vez,
+                })
+
+            try:
+                existencia_introducida = Decimal(existencia_str)
+            except InvalidOperation:
+                messages.error(request, 'La existencia introducida no es un número válido.')
+                form = OperacionAlmacenProduccionForm(
+                    request.POST,
+                    initial={'existencia': existencia, 'transferencia': transferencia}
+                )
+                return render(request, 'combustible/crear_operacion_almacen.html', {
+                    'form': form,
+                    'existencia': existencia,
+                    'transferencia': transferencia,
+                    'es_primera_vez': es_primera_vez,
+                })
+
+            if existencia_introducida < 0:
+                messages.error(request, 'La existencia no puede ser negativa.')
+                form = OperacionAlmacenProduccionForm(
+                    request.POST,
+                    initial={'existencia': existencia, 'transferencia': transferencia}
+                )
+                return render(request, 'combustible/crear_operacion_almacen.html', {
+                    'form': form,
+                    'existencia': existencia,
+                    'transferencia': transferencia,
+                    'es_primera_vez': es_primera_vez,
+                })
+
+            # Usar la existencia introducida por el usuario
+            existencia = existencia_introducida
+
         form = OperacionAlmacenProduccionForm(request.POST,
                                               initial={'existencia': existencia, 'transferencia': transferencia})
         if form.is_valid():
@@ -914,6 +972,7 @@ def crear_operacion_almacen(request):
         'form': form,
         'existencia': existencia,
         'transferencia': transferencia,
+        'es_primera_vez': es_primera_vez,
     })
 
 
