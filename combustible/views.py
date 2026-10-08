@@ -1270,9 +1270,9 @@ def guardar_despacho_real(request, pk):
 
         if not hay_error:
             registro.despacho_real_total = total_despacho
-            registro.total_consumo = total_consumo_despachado  # Total DESPACHADO de consumo
-            registro.total_venta = total_venta_despachado  # Total DESPACHADO de venta
-            registro.total_existente = total_despacho  # Total despachado (para referencia)
+            registro.total_consumo = total_consumo_despachado
+            registro.total_venta = total_venta_despachado
+            registro.total_existente = registro.cantidad_total_aprobada - total_despacho
             registro.fecha_hora = timezone.now()
             registro.estado = 'borrador'
             registro.save()
